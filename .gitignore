@@ -39,3 +39,6 @@ audit-results.json
 # Temporary files
 *.tmp
 .cache/
+CLAUDE.md
+.claude
+/docs/blog-*

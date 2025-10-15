@@ -1,0 +1,70 @@
+# OAuth Guardian Configuration File
+# Copy this file to oauth-guardian.config.yml and customize for your needs
+
+# Target URL will be taken from CLI argument, but can be set here
+target: https://auth.example.com
+
+# OAuth 2.0 / RFC Compliance Checks
+oauth:
+  pkce: true              # Check PKCE (Proof Key for Code Exchange) implementation
+  state: true             # Check state parameter usage (CSRF protection)
+  redirectUri: true       # Check redirect URI validation
+  tokenStorage: true      # Check secure token storage practices
+  scope: true             # Check scope validation
+  clientAuth: true        # Check client authentication methods
+
+# NIST 800-63B Compliance Checks
+nist:
+  assuranceLevel: AAL1    # Target assurance level: AAL1, AAL2, or AAL3
+  sessionManagement: true # Check session management compliance
+  authenticatorLifecycle: false  # Check authenticator lifecycle (AAL2/AAL3)
+
+# OWASP Top 10 Checks
+owasp:
+  severityThreshold: high         # Minimum severity to report: critical, high, medium, low, info
+  injection: true                 # Check for injection vulnerabilities
+  brokenAuth: true                # Check for authentication failures
+  sensitiveDataExposure: true     # Check for sensitive data exposure
+  logging: false                  # Check logging and monitoring
+  accessControl: true             # Check broken access control
+
+# Check Filtering
+checks:
+  # Only run specific checks (by ID)
+  # include:
+  #   - oauth-pkce
+  #   - oauth-state-parameter
+  #   - oauth-redirect-uri
+
+  # Skip specific checks (by ID)
+  # exclude:
+  #   - oauth-token-storage
+
+  # Only run checks from specific categories
+  # categories:
+  #   - oauth
+  #   - nist
+
+# Reporting Configuration
+reporting:
+  format: terminal        # Output format: json, html, markdown, csv, sarif, terminal
+  # output: ./report.html # Output file path (omit for stdout)
+  failOn: critical        # Fail with exit code 1 on this severity: critical, high, medium, low, info
+  includeRemediation: true      # Include remediation guidance in reports
+  includeMetadata: true         # Include metadata in reports
+  includeTimestamp: true        # Include timestamps in reports
+
+# HTTP Client Configuration
+timeout: 10000            # Request timeout in milliseconds (default: 10000)
+userAgent: OAuth-Guardian/0.1.0 (Security Audit Tool)  # Custom User-Agent header
+
+# Custom headers to send with requests
+# headers:
+#   Authorization: Bearer token123
+#   X-Custom-Header: value
+
+# Logging
+verbose: false            # Enable verbose logging (includes request/response details)
+
+# Plugins (for custom checks)
+# pluginsDir: ./plugins

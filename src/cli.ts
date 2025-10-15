@@ -17,8 +17,10 @@ import { RedirectURICheck } from "./checks/oauth/redirect-uri.js";
 import { TokenStorageCheck } from "./checks/oauth/token-storage.js";
 import { JSONReporter } from "./reporters/json-reporter.js";
 import { TerminalReporter } from "./reporters/terminal-reporter.js";
+import { HTMLReporter } from "./reporters/html-reporter.js";
 import { Severity, Report } from "./types/index.js";
 import { writeFile } from "fs/promises";
+import { loadConfig } from "./config/loader.js";
 
 // Get package.json for version info
 const __filename = fileURLToPath(import.meta.url);
@@ -71,12 +73,24 @@ program
 
       console.log(); // Blank line
 
-      // Create audit engine
-      const engine = new AuditEngine({
-        target,
-        verbose: options.verbose,
-        timeout: 10000,
-      });
+      // Load configuration (with CLI overrides)
+      const config = await loadConfig(target, options.config);
+
+      // Override config with CLI options
+      if (options.verbose !== undefined) {
+        config.verbose = options.verbose;
+      }
+      if (options.checks) {
+        config.checks = config.checks || {};
+        config.checks.include = options.checks.split(",").map((c: string) => c.trim());
+      }
+      if (options.skipChecks) {
+        config.checks = config.checks || {};
+        config.checks.exclude = options.skipChecks.split(",").map((c: string) => c.trim());
+      }
+
+      // Create audit engine with loaded config
+      const engine = new AuditEngine(config);
 
       // Register checks
       engine.registerChecks([
@@ -95,6 +109,8 @@ program
 
       if (format === "json") {
         await outputJSON(report, options);
+      } else if (format === "html") {
+        await outputHTML(report, options);
       } else {
         // Terminal format (default)
         outputTerminal(report, options);
@@ -146,6 +162,23 @@ async function outputJSON(report: Report, options: any): Promise<void> {
     console.log(chalk.green(`\n✓ Report saved to ${options.output}\n`));
   } else {
     console.log(json);
+  }
+}
+
+/**
+ * Output report in HTML format
+ */
+async function outputHTML(report: Report, options: any): Promise<void> {
+  const reporter = new HTMLReporter({
+    includeRemediation: true,
+  });
+  const html = await reporter.generate(report);
+
+  if (options.output) {
+    await writeFile(options.output, html, "utf-8");
+    console.log(chalk.green(`\n✓ Report saved to ${options.output}\n`));
+  } else {
+    console.log(html);
   }
 }
 

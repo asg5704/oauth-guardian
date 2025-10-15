@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Guardian Security Audit Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .metadata {
+            background: #f8f9fa;
+            padding: 20px 40px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .metadata-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metadata-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .metadata-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .summary {
+            padding: 40px;
+            background: white;
+        }
+
+        .summary h2 {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #212529;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #6c757d;
+        }
+
+        .stat-card.passed { border-left-color: #28a745; }
+        .stat-card.failed { border-left-color: #dc3545; }
+        .stat-card.warning { border-left-color: #ffc107; }
+        .stat-card.skipped { border-left-color: #6c757d; }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-card.passed .stat-number { color: #28a745; }
+        .stat-card.failed .stat-number { color: #dc3545; }
+        .stat-card.warning .stat-number { color: #ffc107; }
+        .stat-card.skipped .stat-number { color: #6c757d; }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .risk-score {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .risk-score-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .risk-score-bar {
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .risk-score-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+            border-radius: 15px;
+        }
+
+        .risk-low { background: linear-gradient(90deg, #28a745, #20c997); }
+        .risk-medium { background: linear-gradient(90deg, #ffc107, #fd7e14); }
+        .risk-high { background: linear-gradient(90deg, #dc3545, #c82333); }
+
+        .compliance-scorecard {
+            padding: 40px;
+            background: #f8f9fa;
+        }
+
+        .compliance-scorecard h2 {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #212529;
+        }
+
+        .compliance-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .compliance-table th,
+        .compliance-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .compliance-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        .compliance-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .compliance-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .compliance-high { background: #d4edda; color: #155724; }
+        .compliance-medium { background: #fff3cd; color: #856404; }
+        .compliance-low { background: #f8d7da; color: #721c24; }
+
+        .results {
+            padding: 40px;
+        }
+
+        .results h2 {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #212529;
+        }
+
+        .check-result {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #6c757d;
+        }
+
+        .check-result.pass { border-left-color: #28a745; }
+        .check-result.fail { border-left-color: #dc3545; }
+        .check-result.warning { border-left-color: #ffc107; }
+        .check-result.skip { border-left-color: #6c757d; }
+        .check-result.error { border-left-color: #dc3545; }
+
+        .check-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .check-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .check-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .check-status.pass { background: #d4edda; color: #155724; }
+        .check-status.fail { background: #f8d7da; color: #721c24; }
+        .check-status.warning { background: #fff3cd; color: #856404; }
+        .check-status.skip { background: #e2e3e5; color: #383d41; }
+        .check-status.error { background: #f8d7da; color: #721c24; }
+
+        .check-status::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .check-status.pass::before { background: #28a745; }
+        .check-status.fail::before { background: #dc3545; }
+        .check-status.warning::before { background: #ffc107; }
+        .check-status.skip::before { background: #6c757d; }
+        .check-status.error::before { background: #dc3545; }
+
+        .check-description {
+            color: #6c757d;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .check-message {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 0.95rem;
+        }
+
+        .check-remediation {
+            background: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+        }
+
+        .check-remediation h4 {
+            color: #0066cc;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .check-remediation pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 10px;
+        }
+
+        .severity-critical { background: #721c24; color: white; }
+        .severity-high { background: #dc3545; color: white; }
+        .severity-medium { background: #ffc107; color: #212529; }
+        .severity-low { background: #17a2b8; color: white; }
+        .severity-info { background: #6c757d; color: white; }
+
+        footer {
+            background: #f8f9fa;
+            padding: 20px 40px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ OAuth Guardian</h1>
+            <p class="subtitle">Security Audit Report</p>
+        </header>
+
+        <div class="metadata">
+            <div class="metadata-grid">
+                <div class="metadata-item">
+                    <span class="metadata-label">Target</span>
+                    <span class="metadata-value">{{metadata.targetUrl}}</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">Date</span>
+                    <span class="metadata-value">{{formatDate metadata.startTime}}</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">Duration</span>
+                    <span class="metadata-value">{{metadata.executionTime}}ms</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">Version</span>
+                    <span class="metadata-value">{{metadata.version}}</span>
+                </div>
+            </div>
+        </div>
+
+        <section class="summary">
+            <h2>Summary</h2>
+            <div class="stats-grid">
+                <div class="stat-card passed">
+                    <div class="stat-number">{{summary.passed}}</div>
+                    <div class="stat-label">Passed</div>
+                </div>
+                <div class="stat-card failed">
+                    <div class="stat-number">{{summary.failed}}</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-number">{{summary.warnings}}</div>
+                    <div class="stat-label">Warnings</div>
+                </div>
+                <div class="stat-card skipped">
+                    <div class="stat-number">{{summary.skipped}}</div>
+                    <div class="stat-label">Skipped</div>
+                </div>
+            </div>
+
+            <div class="risk-score">
+                <div class="risk-score-header">
+                    <h3>Risk Score</h3>
+                    <strong>{{summary.riskScore}}/100</strong>
+                </div>
+                <div class="risk-score-bar">
+                    <div class="risk-score-fill {{getRiskClass summary.riskScore}}" style="width: {{summary.riskScore}}%"></div>
+                </div>
+            </div>
+
+            <div class="risk-score">
+                <div class="risk-score-header">
+                    <h3>Compliance</h3>
+                    <strong>{{summary.compliancePercentage}}%</strong>
+                </div>
+                <div class="risk-score-bar">
+                    <div class="risk-score-fill {{getComplianceClass summary.compliancePercentage}}" style="width: {{summary.compliancePercentage}}%"></div>
+                </div>
+            </div>
+        </section>
+
+        {{#if compliance.length}}
+        <section class="compliance-scorecard">
+            <h2>Compliance by Standard</h2>
+            <table class="compliance-table">
+                <thead>
+                    <tr>
+                        <th>Standard</th>
+                        <th>Total Checks</th>
+                        <th>Passed</th>
+                        <th>Failed</th>
+                        <th>Compliance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each compliance}}
+                    <tr>
+                        <td><strong>{{this.standard}}</strong></td>
+                        <td>{{this.totalChecks}}</td>
+                        <td style="color: #28a745;">{{this.passed}}</td>
+                        <td style="color: #dc3545;">{{this.failed}}</td>
+                        <td>
+                            <span class="compliance-badge {{getComplianceBadgeClass this.compliancePercentage}}">
+                                {{this.compliancePercentage}}%
+                            </span>
+                        </td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </section>
+        {{/if}}
+
+        <section class="results">
+            <h2>Check Results</h2>
+            {{#each results}}
+            <div class="check-result {{this.status}}">
+                <div class="check-header">
+                    <div>
+                        <span class="check-title">{{this.name}}</span>
+                        {{#if this.severity}}
+                        <span class="severity-badge severity-{{this.severity}}">{{this.severity}}</span>
+                        {{/if}}
+                    </div>
+                    <span class="check-status {{this.status}}">{{this.status}}</span>
+                </div>
+                <div class="check-description">{{this.description}}</div>
+
+                {{#if this.message}}
+                <div class="check-message">
+                    {{this.message}}
+                </div>
+                {{/if}}
+
+                {{#if this.remediation}}
+                <div class="check-remediation">
+                    <h4>💡 Remediation</h4>
+                    <div>{{{formatRemediation this.remediation}}}</div>
+                </div>
+                {{/if}}
+            </div>
+            {{/each}}
+        </section>
+
+        <footer>
+            <p>Generated by OAuth Guardian v{{metadata.version}} • <a href="https://github.com/asg5704/oauth-guardian" style="color: #667eea;">github.com/asg5704/oauth-guardian</a></p>
+        </footer>
+    </div>
+</body>
+</html>

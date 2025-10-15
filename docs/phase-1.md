@@ -382,23 +382,127 @@ node dist/cli.js --help
 
 ## Week 3: Configuration & Basic HTML Report
 
-### Status: 📅 Not Started
+### Status: ✅ Complete
 
-**Planned Tasks:**
+**Completed Tasks:**
 
-#### Day 15-17: Configuration System
+#### Day 15-17: Configuration System ✅
 
-- [ ] Create `src/config/defaults.ts`
-- [ ] Create `src/config/loader.ts` (YAML support)
-- [ ] Create `src/config/schema.ts` (Zod validation)
-- [ ] Create example config: `oauth-guardian.config.example.yml`
+- [x] Create `src/config/defaults.ts`
+- [x] Create `src/config/loader.ts` (YAML support)
+- [x] Create `src/config/schema.ts` (Zod validation)
+- [x] Create example config: `oauth-guardian.config.example.yml`
 
-#### Day 18-21: Basic HTML Report
+#### Day 18-21: Basic HTML Report ✅
 
-- [ ] Install: `handlebars`
-- [ ] Create `templates/html-report.hbs`
-- [ ] Create `src/reporters/html-reporter.ts`
-- [ ] Add `--format html` support
+- [x] Install: `handlebars` and `@types/handlebars`
+- [x] Create `templates/html-report.hbs`
+- [x] Create `src/reporters/html-reporter.ts`
+- [x] Add `--format html` support to CLI
+- [x] Update programmatic API exports
+
+## Session 5 Achievements ✅
+
+1. ✅ **Configuration System** - Complete YAML-based configuration with Zod validation
+   - `src/config/schema.ts` (165 lines) - Zod schemas for type-safe config
+   - `src/config/defaults.ts` (75 lines) - Sensible default configuration
+   - `src/config/loader.ts` (169 lines) - YAML file loading with auto-discovery
+   - `oauth-guardian.config.example.yml` - Documented configuration template
+
+2. ✅ **HTML Reporter** - Beautiful HTML reports with Handlebars templates
+   - `templates/html-report.hbs` (600+ lines) - Professional HTML template
+   - `src/reporters/html-reporter.ts` (200 lines) - Report generator with helpers
+   - Gradient designs, responsive layout, print-ready
+   - Risk scores, compliance metrics, detailed findings with remediation
+
+3. ✅ **CLI Integration** - Full configuration and HTML support
+   - Configuration auto-discovery (searches for config files)
+   - CLI option overrides for config file settings
+   - `--format html` with `--output` support
+   - Updated exports in `src/index.ts` for programmatic use
+
+4. ✅ **Build & Testing**
+   - All TypeScript compilation successful
+   - Tested HTML report generation with Google OAuth
+   - Report includes all check results, compliance scorecards, risk metrics
+
+**Effort**: ~2 hours
+
+### Configuration System Features
+
+**Auto-discovery**: Searches for config files in this order:
+1. `oauth-guardian.config.yml`
+2. `oauth-guardian.config.yaml`
+3. `.oauth-guardian.yml`
+4. `.oauth-guardian.yaml`
+
+**Validation**: Zod schema validates:
+- OAuth check settings (pkce, state, redirectUri, etc.)
+- NIST assurance levels (AAL1/AAL2/AAL3)
+- OWASP severity thresholds
+- Check filtering (include/exclude/categories)
+- Reporting format and options
+
+**Defaults**: Sensible defaults for all options
+- All OAuth checks enabled
+- NIST AAL1 level
+- Terminal output format
+- Critical severity fail threshold
+
+### HTML Reporter Features
+
+**Visual Design**:
+- Gradient header with branding
+- Color-coded status indicators
+- Risk score visualization with progress bars
+- Compliance percentage tracking
+- Responsive grid layouts
+
+**Report Sections**:
+1. Metadata (target, date, duration, version)
+2. Summary statistics (passed, failed, warnings, skipped)
+3. Risk score (0-100 with color gradients)
+4. Compliance percentage
+5. Compliance by standard table
+6. Detailed check results with remediation
+
+**Handlebars Helpers**:
+- `formatDate` - Human-readable dates
+- `getRiskClass` - Color classes for risk scores
+- `getComplianceClass` - Color classes for compliance
+- `formatRemediation` - Converts markdown to HTML
+
+### Usage Examples
+
+**With configuration file:**
+```bash
+# Create config (copy example)
+cp oauth-guardian.config.example.yml oauth-guardian.config.yml
+
+# Edit config, then run
+oauth-guardian https://auth.example.com
+
+# CLI options override config
+oauth-guardian https://auth.example.com --format html --output report.html
+```
+
+**Without configuration file:**
+```bash
+# Uses defaults
+oauth-guardian https://accounts.google.com --format html -o google-report.html
+```
+
+**Programmatic API:**
+```typescript
+import { loadConfig, HTMLReporter, AuditEngine } from "oauth-guardian";
+
+const config = await loadConfig("https://auth.example.com", "./my-config.yml");
+const engine = new AuditEngine(config);
+const report = await engine.run();
+
+const htmlReporter = new HTMLReporter();
+const html = await htmlReporter.generate(report);
+```
 
 ---
 
@@ -647,9 +751,9 @@ Remediation (--verbose):
 
 ---
 
-**Last Updated**: 2025-10-14
-**Phase Status**: Week 1 Complete + Week 2 Day 8-10 Complete ✅
-**Overall Progress**: 50% (MVP nearly complete - 4 OAuth checks implemented)
+**Last Updated**: 2025-10-15
+**Phase Status**: Week 1-3 Complete ✅ - Phase 1 MVP DONE! 🎉
+**Overall Progress**: 100% Phase 1 Complete (Configuration + HTML Reports + 4 OAuth Checks)
 
 ---
 
