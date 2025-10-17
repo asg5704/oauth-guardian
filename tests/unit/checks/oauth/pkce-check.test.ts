@@ -1,20 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { StateParameterCheck } from '../../src/checks/oauth/state.js';
-import { HttpClient, type OAuthMetadata } from '../../src/auditor/http-client.js';
-import { CheckContext, CheckStatus, Severity } from '../../src/types/index.js';
+import { PKCECheck } from '../../../../src/checks/oauth/pkce.js';
+import { HttpClient, type OAuthMetadata } from '../../../../src/auditor/http-client.js';
+import { CheckContext, CheckStatus, Severity } from '../../../../src/types/index.js';
 import MockAdapter from 'axios-mock-adapter';
 import axios from 'axios';
 
-describe('StateParameterCheck', () => {
+describe('PKCECheck', () => {
   let mock: MockAdapter;
   let httpClient: HttpClient;
-  let check: StateParameterCheck;
+  let check: PKCECheck;
   let context: CheckContext;
 
   beforeEach(() => {
     mock = new MockAdapter(axios);
     httpClient = new HttpClient({ timeout: 5000, userAgent: 'Test-Agent' });
-    check = new StateParameterCheck();
+    check = new PKCECheck();
     context = {
       targetUrl: 'https://example.com',
       config: {},
@@ -24,20 +24,21 @@ describe('StateParameterCheck', () => {
 
   describe('check properties', () => {
     it('should have correct check metadata', () => {
-      expect(check.id).toBe('oauth-state-parameter');
-      expect(check.name).toBe('State Parameter Implementation Check');
+      expect(check.id).toBe('oauth-pkce');
+      expect(check.name).toBe('PKCE Implementation Check');
       expect(check.category).toBe('oauth');
       expect(check.defaultSeverity).toBe(Severity.HIGH);
-      expect(check.description).toContain('state parameter');
+      expect(check.description).toContain('PKCE');
     });
   });
 
   describe('execute() - PASS scenarios', () => {
-    it('should pass when OAuth metadata is discovered', async () => {
+    it('should pass when PKCE is supported with S256 method', async () => {
       const mockMetadata: OAuthMetadata = {
         issuer: 'https://example.com',
         authorization_endpoint: 'https://example.com/oauth/authorize',
         token_endpoint: 'https://example.com/oauth/token',
+        code_challenge_methods_supported: ['S256', 'plain'],
       };
 
       mock
@@ -47,20 +48,20 @@ describe('StateParameterCheck', () => {
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.PASS);
-      expect(result.message).toContain('OAuth metadata discovered');
-      expect(result.message).toContain('State parameter');
-      expect(result.message).toContain('CSRF protection');
+      expect(result.message).toContain('PKCE is properly supported with S256 method');
+      expect(result.message).toContain('S256');
+      expect(result.message).toContain('plain');
       expect(result.metadata).toHaveProperty('issuer', 'https://example.com');
-      expect(result.metadata).toHaveProperty('authorization_endpoint');
-      expect(result.metadata).toHaveProperty('note');
-      expect(result.metadata).toHaveProperty('recommendation');
+      expect(result.metadata).toHaveProperty('supported_methods');
+      expect(result.metadata?.supported_methods).toEqual(['S256', 'plain']);
     });
 
-    it('should pass with guidance note about client-side responsibility', async () => {
+    it('should pass when only S256 is supported', async () => {
       const mockMetadata: OAuthMetadata = {
-        issuer: 'https://auth.example.com',
-        authorization_endpoint: 'https://auth.example.com/authorize',
-        token_endpoint: 'https://auth.example.com/token',
+        issuer: 'https://example.com',
+        authorization_endpoint: 'https://example.com/oauth/authorize',
+        token_endpoint: 'https://example.com/oauth/token',
+        code_challenge_methods_supported: ['S256'],
       };
 
       mock
@@ -70,8 +71,7 @@ describe('StateParameterCheck', () => {
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.PASS);
-      expect(result.metadata?.note).toContain('client-side responsibility');
-      expect(result.metadata?.recommendation).toContain('state parameter');
+      expect(result.metadata?.supported_methods).toEqual(['S256']);
     });
 
     it('should discover metadata from OIDC endpoint if OAuth fails', async () => {
@@ -79,6 +79,7 @@ describe('StateParameterCheck', () => {
         issuer: 'https://example.com',
         authorization_endpoint: 'https://example.com/oauth/authorize',
         token_endpoint: 'https://example.com/oauth/token',
+        code_challenge_methods_supported: ['S256'],
       };
 
       mock
@@ -92,7 +93,7 @@ describe('StateParameterCheck', () => {
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.PASS);
-      expect(result.message).toContain('OAuth metadata discovered');
+      expect(result.message).toContain('PKCE is properly supported');
     });
   });
 
@@ -110,34 +111,40 @@ describe('StateParameterCheck', () => {
 
       expect(result.status).toBe(CheckStatus.WARNING);
       expect(result.message).toContain('Unable to discover OAuth metadata');
-      expect(result.message).toContain('Could not verify state parameter support');
+      expect(result.message).toContain('Could not verify PKCE support');
       expect(result.message).toContain('Attempted endpoints:');
       expect(result.message).toContain('/.well-known/oauth-authorization-server');
       expect(result.message).toContain('/.well-known/openid-configuration');
       expect(result.message).toContain('404 Not Found');
-      expect(result.remediation).toContain('state parameter');
-      expect(result.remediation).toContain('CSRF');
-      expect(result.remediation).toContain('crypto.randomBytes');
+      expect(result.remediation).toContain('RFC 8414');
+      expect(result.remediation).toContain('OpenID Connect Discovery');
       expect(result.metadata).toHaveProperty('attempts');
       expect(result.metadata?.attempts).toHaveLength(2);
     });
 
-    it('should provide detailed remediation for state parameter implementation', async () => {
-      mock
-        .onGet('https://example.com/.well-known/oauth-authorization-server')
-        .reply(404);
+    it('should warn when PKCE is supported but S256 is not available', async () => {
+      const mockMetadata: OAuthMetadata = {
+        issuer: 'https://example.com',
+        authorization_endpoint: 'https://example.com/oauth/authorize',
+        token_endpoint: 'https://example.com/oauth/token',
+        code_challenge_methods_supported: ['plain'],
+      };
 
       mock
-        .onGet('https://example.com/.well-known/openid-configuration')
-        .reply(404);
+        .onGet('https://example.com/.well-known/oauth-authorization-server')
+        .reply(200, mockMetadata);
 
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.WARNING);
-      expect(result.remediation).toContain('cryptographically random');
-      expect(result.remediation).toContain('session');
-      expect(result.remediation).toContain('Validate');
-      expect(result.remediation).toContain('RFC 6749');
+      expect(result.message).toContain('PKCE is supported');
+      expect(result.message).toContain('S256 method is not available');
+      expect(result.message).toContain('Supported methods: plain');
+      expect(result.remediation).toContain('Add S256 (SHA-256) support');
+      expect(result.remediation).toContain("'plain' method is less secure");
+      expect(result.metadata).toHaveProperty('issuer');
+      expect(result.metadata).toHaveProperty('supported_methods');
+      expect(result.metadata?.supported_methods).toEqual(['plain']);
     });
 
     it('should warn with different HTTP status codes', async () => {
@@ -154,6 +161,70 @@ describe('StateParameterCheck', () => {
       expect(result.status).toBe(CheckStatus.WARNING);
       expect(result.message).toContain('403 Forbidden');
       expect(result.message).toContain('500 Internal Server Error');
+    });
+  });
+
+  describe('execute() - FAIL scenarios', () => {
+    it('should fail when PKCE is not supported at all', async () => {
+      const mockMetadata: OAuthMetadata = {
+        issuer: 'https://example.com',
+        authorization_endpoint: 'https://example.com/oauth/authorize',
+        token_endpoint: 'https://example.com/oauth/token',
+        // No code_challenge_methods_supported field
+      };
+
+      mock
+        .onGet('https://example.com/.well-known/oauth-authorization-server')
+        .reply(200, mockMetadata);
+
+      const result = await check.run(context);
+
+      expect(result.status).toBe(CheckStatus.FAIL);
+      expect(result.severity).toBe(Severity.HIGH);
+      expect(result.message).toContain('PKCE is not supported');
+      expect(result.message).toContain('does not advertise code_challenge_methods_supported');
+      expect(result.remediation).toContain('To implement PKCE');
+      expect(result.remediation).toContain('code_challenge');
+      expect(result.remediation).toContain('code_verifier');
+      expect(result.remediation).toContain('RFC 7636');
+      expect(result.metadata).toHaveProperty('issuer');
+      expect(result.metadata).toHaveProperty('authorization_endpoint');
+      expect(result.metadata).toHaveProperty('token_endpoint');
+    });
+
+    it('should fail when code_challenge_methods_supported is empty array', async () => {
+      const mockMetadata: OAuthMetadata = {
+        issuer: 'https://example.com',
+        authorization_endpoint: 'https://example.com/oauth/authorize',
+        token_endpoint: 'https://example.com/oauth/token',
+        code_challenge_methods_supported: [],
+      };
+
+      mock
+        .onGet('https://example.com/.well-known/oauth-authorization-server')
+        .reply(200, mockMetadata);
+
+      const result = await check.run(context);
+
+      expect(result.status).toBe(CheckStatus.FAIL);
+      expect(result.severity).toBe(Severity.HIGH);
+    });
+
+    it('should fail when code_challenge_methods_supported is not an array', async () => {
+      const mockMetadata = {
+        issuer: 'https://example.com',
+        authorization_endpoint: 'https://example.com/oauth/authorize',
+        token_endpoint: 'https://example.com/oauth/token',
+        code_challenge_methods_supported: 'S256', // Invalid: should be array
+      };
+
+      mock
+        .onGet('https://example.com/.well-known/oauth-authorization-server')
+        .reply(200, mockMetadata);
+
+      const result = await check.run(context);
+
+      expect(result.status).toBe(CheckStatus.FAIL);
     });
   });
 
@@ -190,6 +261,7 @@ describe('StateParameterCheck', () => {
         issuer: 'https://example.com',
         authorization_endpoint: 'https://example.com/oauth/authorize',
         token_endpoint: 'https://example.com/oauth/token',
+        code_challenge_methods_supported: ['S256'],
       };
 
       mock
@@ -207,6 +279,7 @@ describe('StateParameterCheck', () => {
         issuer: 'https://example.com',
         authorization_endpoint: 'https://example.com/oauth/authorize',
         token_endpoint: 'https://example.com/oauth/token',
+        code_challenge_methods_supported: ['S256'],
       };
 
       mock
@@ -241,6 +314,7 @@ describe('StateParameterCheck', () => {
         issuer: 'https://example.com',
         authorization_endpoint: 'https://example.com/oauth/authorize',
         token_endpoint: 'https://example.com/oauth/token',
+        code_challenge_methods_supported: ['S256'],
       };
 
       mock
@@ -250,7 +324,7 @@ describe('StateParameterCheck', () => {
       await check.run(contextWithLogger);
 
       expect(logs.some((log) => log.includes('Discovering OAuth metadata'))).toBe(true);
-      expect(logs.some((log) => log.includes('state parameter'))).toBe(true);
+      expect(logs.some((log) => log.includes('PKCE check passed'))).toBe(true);
     });
   });
 });

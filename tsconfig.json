@@ -32,7 +32,18 @@
     "resolveJsonModule": true,
 
     /* Completeness */
-    "skipLibCheck": true
+    "skipLibCheck": true,
+
+    /* Aliases */
+    "baseUrl": ".",
+    "paths": {
+      "@checks": ["./src/checks/*"],
+      "@auditor": ["./src/auditor/*"],
+      "@config": ["./src/config/*"],
+      "@reporters": ["./src/reporters/*"],
+      "@rules": ["./src/rules/*"],
+      "@": ["./src/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "tests"]

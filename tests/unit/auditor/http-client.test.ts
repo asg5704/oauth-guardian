@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import MockAdapter from 'axios-mock-adapter';
 import axios from 'axios';
-import { HttpClient, type OAuthMetadata } from '../../src/auditor/http-client.js';
+import { HttpClient, type OAuthMetadata } from '../../../src/auditor/http-client.js';
 
 describe('HttpClient', () => {
   let mock: MockAdapter;

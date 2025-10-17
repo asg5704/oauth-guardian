@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { BaseCheck } from '../../src/checks/base-check.js';
+import { BaseCheck } from '../../../src/checks/base-check.js';
 import {
   CheckResult,
   CheckCategory,
   Severity,
   CheckContext,
   CheckStatus,
-} from '../../src/types/index.js';
+} from '../../../src/types/index.js';
 
 // Create a concrete implementation for testing
 class TestCheck extends BaseCheck {

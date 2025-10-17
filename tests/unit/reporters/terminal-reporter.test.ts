@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TerminalReporter } from '../../src/reporters/terminal-reporter.js';
-import { Report, CheckStatus, Severity, CheckCategory } from '../../src/types/index.js';
+import { TerminalReporter } from '../../../src/reporters/terminal-reporter.js';
+import { Report, CheckStatus, Severity, CheckCategory } from '../../../src/types/index.js';
 
 // Helper to strip ANSI color codes for testing
 function stripAnsi(str: string): string {

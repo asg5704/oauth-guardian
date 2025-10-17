@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AuditEngine } from '../../src/auditor/engine.js';
-import { BaseCheck } from '../../src/checks/base-check.js';
+import { AuditEngine } from '../../../src/auditor/engine.js';
+import { BaseCheck } from '../../../src/checks/base-check.js';
 import {
   AuditorConfig,
   CheckResult,
@@ -8,7 +8,7 @@ import {
   CheckCategory,
   Severity,
   CheckStatus,
-} from '../../src/types/index.js';
+} from '../../../src/types/index.js';
 
 // Test check implementations
 class PassingCheck extends BaseCheck {

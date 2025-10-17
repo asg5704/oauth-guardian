@@ -1,20 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RedirectURICheck } from '../../src/checks/oauth/redirect-uri.js';
-import { HttpClient, type OAuthMetadata } from '../../src/auditor/http-client.js';
-import { CheckContext, CheckStatus, Severity } from '../../src/types/index.js';
+import { StateParameterCheck } from '../../../../src/checks/oauth/state.js';
+import { HttpClient, type OAuthMetadata } from '../../../../src/auditor/http-client.js';
+import { CheckContext, CheckStatus, Severity } from '../../../../src/types/index.js';
 import MockAdapter from 'axios-mock-adapter';
 import axios from 'axios';
 
-describe('RedirectURICheck', () => {
+describe('StateParameterCheck', () => {
   let mock: MockAdapter;
   let httpClient: HttpClient;
-  let check: RedirectURICheck;
+  let check: StateParameterCheck;
   let context: CheckContext;
 
   beforeEach(() => {
     mock = new MockAdapter(axios);
     httpClient = new HttpClient({ timeout: 5000, userAgent: 'Test-Agent' });
-    check = new RedirectURICheck();
+    check = new StateParameterCheck();
     context = {
       targetUrl: 'https://example.com',
       config: {},
@@ -24,16 +24,16 @@ describe('RedirectURICheck', () => {
 
   describe('check properties', () => {
     it('should have correct check metadata', () => {
-      expect(check.id).toBe('oauth-redirect-uri');
-      expect(check.name).toBe('Redirect URI Validation Check');
+      expect(check.id).toBe('oauth-state-parameter');
+      expect(check.name).toBe('State Parameter Implementation Check');
       expect(check.category).toBe('oauth');
-      expect(check.defaultSeverity).toBe(Severity.CRITICAL);
-      expect(check.description).toContain('redirect URI');
+      expect(check.defaultSeverity).toBe(Severity.HIGH);
+      expect(check.description).toContain('state parameter');
     });
   });
 
   describe('execute() - PASS scenarios', () => {
-    it('should pass when authorization endpoint is found', async () => {
+    it('should pass when OAuth metadata is discovered', async () => {
       const mockMetadata: OAuthMetadata = {
         issuer: 'https://example.com',
         authorization_endpoint: 'https://example.com/oauth/authorize',
@@ -47,19 +47,20 @@ describe('RedirectURICheck', () => {
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.PASS);
-      expect(result.message).toContain('Redirect URI validation');
+      expect(result.message).toContain('OAuth metadata discovered');
+      expect(result.message).toContain('State parameter');
+      expect(result.message).toContain('CSRF protection');
       expect(result.metadata).toHaveProperty('issuer', 'https://example.com');
       expect(result.metadata).toHaveProperty('authorization_endpoint');
-      expect(result.metadata).toHaveProperty('has_registration_endpoint', false);
-      expect(result.metadata).toHaveProperty('recommendations');
+      expect(result.metadata).toHaveProperty('note');
+      expect(result.metadata).toHaveProperty('recommendation');
     });
 
-    it('should pass with registration endpoint support', async () => {
+    it('should pass with guidance note about client-side responsibility', async () => {
       const mockMetadata: OAuthMetadata = {
-        issuer: 'https://example.com',
-        authorization_endpoint: 'https://example.com/oauth/authorize',
-        token_endpoint: 'https://example.com/oauth/token',
-        registration_endpoint: 'https://example.com/oauth/register',
+        issuer: 'https://auth.example.com',
+        authorization_endpoint: 'https://auth.example.com/authorize',
+        token_endpoint: 'https://auth.example.com/token',
       };
 
       mock
@@ -69,12 +70,11 @@ describe('RedirectURICheck', () => {
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.PASS);
-      expect(result.message).toContain('dynamic client registration');
-      expect(result.metadata).toHaveProperty('has_registration_endpoint', true);
-      expect(result.metadata).toHaveProperty('registration_endpoint');
+      expect(result.metadata?.note).toContain('client-side responsibility');
+      expect(result.metadata?.recommendation).toContain('state parameter');
     });
 
-    it('should include security recommendations in metadata', async () => {
+    it('should discover metadata from OIDC endpoint if OAuth fails', async () => {
       const mockMetadata: OAuthMetadata = {
         issuer: 'https://example.com',
         authorization_endpoint: 'https://example.com/oauth/authorize',
@@ -83,17 +83,16 @@ describe('RedirectURICheck', () => {
 
       mock
         .onGet('https://example.com/.well-known/oauth-authorization-server')
+        .reply(404);
+
+      mock
+        .onGet('https://example.com/.well-known/openid-configuration')
         .reply(200, mockMetadata);
 
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.PASS);
-      const recommendations = result.metadata?.recommendations as string[];
-      expect(recommendations).toBeDefined();
-      expect(recommendations.length).toBeGreaterThan(0);
-      expect(recommendations.some((r: string) => r.includes('exact match'))).toBe(true);
-      expect(recommendations.some((r: string) => r.includes('HTTPS'))).toBe(true);
-      expect(recommendations.some((r: string) => r.includes('open redirect'))).toBe(true);
+      expect(result.message).toContain('OAuth metadata discovered');
     });
   });
 
@@ -111,16 +110,19 @@ describe('RedirectURICheck', () => {
 
       expect(result.status).toBe(CheckStatus.WARNING);
       expect(result.message).toContain('Unable to discover OAuth metadata');
-      expect(result.message).toContain('Could not verify redirect URI validation');
+      expect(result.message).toContain('Could not verify state parameter support');
       expect(result.message).toContain('Attempted endpoints:');
+      expect(result.message).toContain('/.well-known/oauth-authorization-server');
+      expect(result.message).toContain('/.well-known/openid-configuration');
       expect(result.message).toContain('404 Not Found');
-      expect(result.remediation).toContain('Redirect URI');
-      expect(result.remediation).toContain('exact');
-      expect(result.remediation).toContain('HTTPS');
+      expect(result.remediation).toContain('state parameter');
+      expect(result.remediation).toContain('CSRF');
+      expect(result.remediation).toContain('crypto.randomBytes');
       expect(result.metadata).toHaveProperty('attempts');
+      expect(result.metadata?.attempts).toHaveLength(2);
     });
 
-    it('should provide comprehensive remediation guidance', async () => {
+    it('should provide detailed remediation for state parameter implementation', async () => {
       mock
         .onGet('https://example.com/.well-known/oauth-authorization-server')
         .reply(404);
@@ -132,35 +134,26 @@ describe('RedirectURICheck', () => {
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.WARNING);
-      expect(result.remediation).toContain('Registration Phase');
-      expect(result.remediation).toContain('Authorization Request');
-      expect(result.remediation).toContain('Security Rules');
-      expect(result.remediation).toContain('validateRedirectURI');
-      expect(result.remediation).toContain('Open redirect');
+      expect(result.remediation).toContain('cryptographically random');
+      expect(result.remediation).toContain('session');
+      expect(result.remediation).toContain('Validate');
       expect(result.remediation).toContain('RFC 6749');
     });
-  });
 
-  describe('execute() - FAIL scenarios', () => {
-    it('should fail when no authorization endpoint is found', async () => {
-      const mockMetadata: OAuthMetadata = {
-        issuer: 'https://example.com',
-        // Missing authorization_endpoint
-        token_endpoint: 'https://example.com/oauth/token',
-      };
-
+    it('should warn with different HTTP status codes', async () => {
       mock
         .onGet('https://example.com/.well-known/oauth-authorization-server')
-        .reply(200, mockMetadata);
+        .reply(403);
+
+      mock
+        .onGet('https://example.com/.well-known/openid-configuration')
+        .reply(500);
 
       const result = await check.run(context);
 
-      expect(result.status).toBe(CheckStatus.FAIL);
-      expect(result.severity).toBe(Severity.HIGH);
-      expect(result.message).toContain('No authorization endpoint');
-      expect(result.message).toContain('Cannot validate redirect URI');
-      expect(result.remediation).toContain('authorization_endpoint');
-      expect(result.metadata).toHaveProperty('issuer');
+      expect(result.status).toBe(CheckStatus.WARNING);
+      expect(result.message).toContain('403 Forbidden');
+      expect(result.message).toContain('500 Internal Server Error');
     });
   });
 
@@ -257,7 +250,7 @@ describe('RedirectURICheck', () => {
       await check.run(contextWithLogger);
 
       expect(logs.some((log) => log.includes('Discovering OAuth metadata'))).toBe(true);
-      expect(logs.some((log) => log.includes('redirect URI'))).toBe(true);
+      expect(logs.some((log) => log.includes('state parameter'))).toBe(true);
     });
   });
 });

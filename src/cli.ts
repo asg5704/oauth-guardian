@@ -50,7 +50,10 @@ program
   )
   .option("--checks <checks>", "Comma-separated list of checks to run")
   .option("--skip-checks <checks>", "Comma-separated list of checks to skip")
-  .option("--nist-level <level>", "Target NIST assurance level (AAL1, AAL2, AAL3)")
+  .option(
+    "--nist-level <level>",
+    "Target NIST assurance level (AAL1, AAL2, AAL3)"
+  )
   .option("-v, --verbose", "Enable verbose logging")
   .option("--no-color", "Disable colored output")
   .action(async (target: string | undefined, options) => {
@@ -67,11 +70,15 @@ program
       }
       if (options.checks) {
         config.checks = config.checks || {};
-        config.checks.include = options.checks.split(",").map((c: string) => c.trim());
+        config.checks.include = options.checks
+          .split(",")
+          .map((c: string) => c.trim());
       }
       if (options.skipChecks) {
         config.checks = config.checks || {};
-        config.checks.exclude = options.skipChecks.split(",").map((c: string) => c.trim());
+        config.checks.exclude = options.skipChecks
+          .split(",")
+          .map((c: string) => c.trim());
       }
 
       // Override reporting config with CLI options (only if explicitly provided)
@@ -93,7 +100,9 @@ program
       }
 
       // Determine final format (defaults to terminal if not set anywhere)
-      const format = (config.reporting.format || "terminal").toString().toLowerCase();
+      const format = (config.reporting.format || "terminal")
+        .toString()
+        .toLowerCase();
 
       console.log(chalk.blue("Target:"), config.target);
       console.log(chalk.blue("Format:"), format);
@@ -170,7 +179,7 @@ program
 /**
  * Output report in JSON format
  */
-async function outputJSON(report: Report, config: any): Promise<void> {
+async function outputJSON(report: Report, config?: any): Promise<void> {
   const reporter = new JSONReporter({ pretty: true });
   const json = reporter.generate(report);
 

@@ -768,18 +768,173 @@ nist:
 ## Next Steps
 
 1. ✅ Complete research (this document)
-2. ⏭️ Create NIST check base class (`src/checks/nist/base-nist-check.ts`)
-3. ⏭️ Implement AAL detection check (`src/checks/nist/aal-detection.ts`)
+2. ✅ Create NIST check base class (`src/checks/nist/base-nist-check.ts`)
+3. ✅ Implement AAL detection check (`src/checks/nist/aal-detection.ts`)
 4. ⏭️ Implement AAL1 compliance check (`src/checks/nist/aal1-compliance.ts`)
 5. ⏭️ Implement AAL2 compliance check (`src/checks/nist/aal2-compliance.ts`)
 6. ⏭️ Implement AAL3 compliance check (`src/checks/nist/aal3-compliance.ts`)
 7. ⏭️ Implement session management check (`src/checks/nist/session-management.ts`)
 8. ⏭️ Create provider ACR mapping database
-9. ⏭️ Write comprehensive unit tests
+9. ✅ Write comprehensive unit tests for base class (36 tests passing)
 10. ⏭️ Test against real OAuth providers
 
 ---
 
 **Document Status**: ✅ Complete
-**Last Updated**: 2025-10-16
-**Next Action**: Begin implementation with AAL detection check
+**Last Updated**: 2025-10-17
+**Next Action**: Implement AAL detection check
+
+## Implementation Progress
+
+### Session 7 - 2025-10-17
+
+**Completed**: NIST Base Check Class Implementation
+
+**Files Created**:
+- `src/checks/nist/base-nist-check.ts` (450+ lines)
+  - Abstract base class extending `BaseCheck`
+  - ACR (Authentication Context Class Reference) analysis
+  - AMR (Authentication Method Reference) analysis
+  - AAL level detection and validation logic
+  - HTTPS enforcement checks
+  - Session timeout requirement getters
+  - Comprehensive remediation guidance generators
+
+- `src/checks/nist/index.ts` - Export module for NIST checks
+
+- `tests/unit/base-nist-check.test.ts` (560+ lines)
+  - 36 comprehensive unit tests
+  - Tests for ACR value pattern matching (NIST, Okta, custom formats)
+  - Tests for AMR value analysis
+  - Tests for AAL level detection (AAL1, AAL2, AAL3)
+  - Tests for OIDC provider detection
+  - Tests for HTTPS enforcement validation
+  - Tests for session timeout requirements
+  - 88% code coverage on base-nist-check.ts
+
+**Key Features Implemented**:
+
+1. **AALLevel Enum**: Defines AAL1, AAL2, AAL3 levels
+
+2. **ACR Analysis** (`analyzeACRValues`):
+   - Pattern matching for standard NIST URN format (`urn:*:nist:*:aal:*`)
+   - Support for Okta-style ACR values (`phr`, `phrh`, `urn:okta:loa:*`)
+   - Detection of MFA patterns (`2fa`, `mfa`, `multi`)
+   - Detection of assurance level keywords (`basic`, `low`, `high`, `strong`)
+   - Confidence scoring (high/medium/low)
+   - Tracking of unmapped custom values
+
+3. **AMR Analysis** (`analyzeAMRValues`):
+   - Detects AMR claim support in metadata
+   - Placeholder for future runtime AMR value analysis
+   - Note: Most providers don't expose AMR values in metadata
+
+4. **AAL Detection** (`detectAALSupport`):
+   - Combines ACR and AMR analysis
+   - Determines highest supported AAL level
+   - Returns array of all supported AAL levels
+   - Confidence assessment for detection
+
+5. **Helper Methods**:
+   - `isOIDCProvider()` - Detects OIDC vs OAuth-only providers
+   - `isHTTPSEnforced()` - Validates endpoint security
+   - `getAALSessionTimeoutRequirement()` - Returns NIST timeout requirements
+   - `getAALIdleTimeoutRequirement()` - Returns NIST idle timeout requirements
+   - `formatAAL()` - Human-readable AAL descriptions
+   - `createMetadataWarning()` - Standardized warning for missing metadata
+   - `getACRRemediationGuidance()` - AAL-specific implementation guidance
+
+6. **Metadata Discovery**:
+   - Reuses existing `HttpClient.discoverMetadata()` method
+   - Graceful error handling for missing endpoints
+   - Detailed error reporting with attempted URLs
+
+**Test Coverage Highlights**:
+- ✅ Standard NIST AAL URN format detection
+- ✅ Okta custom ACR value patterns
+- ✅ Multi-factor authentication patterns
+- ✅ Basic/low assurance patterns
+- ✅ Unmapped custom value handling
+- ✅ OIDC provider detection
+- ✅ HTTPS enforcement validation
+- ✅ Session timeout requirements (AAL1: 720h, AAL2/3: 12h)
+- ✅ Idle timeout requirements (AAL1: none, AAL2: 60m, AAL3: 15m)
+
+**Technical Decisions**:
+- Extended `BaseCheck` rather than creating parallel hierarchy
+- Metadata-first approach (cannot determine methods without runtime authentication)
+- Pattern matching for ACR values (no official standard exists)
+- Confidence scoring to indicate detection reliability
+- Graceful degradation when metadata is unavailable
+
+**Next Implementation Tasks**:
+1. ✅ Create AAL detection check (discovers and reports supported AAL levels)
+2. Implement AAL1 compliance check
+3. Implement AAL2 compliance check
+4. Implement AAL3 compliance check
+5. Implement session management check
+
+---
+
+### Session 7 (continued) - AAL Detection Check
+
+**Completed**: AAL Detection Check Implementation
+
+**Files Created**:
+- `src/checks/nist/aal-detection.ts` (210+ lines)
+  - Concrete check extending `BaseNISTCheck`
+  - Discovers which NIST AAL levels are supported
+  - Informational check (Severity.INFO)
+  - Multiple result pathways based on metadata availability
+
+- `tests/unit/aal-detection.test.ts` (350+ lines)
+  - 14 comprehensive test cases
+  - 100% code coverage on aal-detection.ts
+  - Tests all result pathways (PASS, WARNING, SKIP)
+
+**Check Behavior**:
+
+1. **Metadata Discovery Failure** → WARNING
+   - Cannot discover OAuth metadata
+   - Provides guidance for implementing RFC 8414 or OIDC Discovery
+
+2. **OAuth-only Provider** → SKIPPED
+   - Provider doesn't support OIDC (no id_token response type)
+   - NIST AAL requires OIDC with ACR/AMR claims
+
+3. **OIDC Without ACR Values** → WARNING
+   - Provider is OIDC but doesn't advertise `acr_values_supported`
+   - May support ACR/AMR claims but values unknown
+   - Provides manual verification guidance
+
+4. **OIDC With Full ACR Support** → PASS (High Confidence)
+   - All ACR values successfully mapped to AAL levels
+   - Reports highest AAL level and full list of supported levels
+   - Includes detected ACR values in metadata
+
+5. **OIDC With Partial Mapping** → PASS (Medium Confidence)
+   - Some ACR values mapped, some custom/unknown
+   - Reports detected AAL levels and lists unmapped values
+   - Suggests consulting provider documentation
+
+**Test Scenarios Covered**:
+- ✅ Metadata discovery failures (404 responses)
+- ✅ OAuth-only providers (no OIDC support)
+- ✅ OIDC without any ACR support
+- ✅ OIDC with ACR claim but no acr_values_supported
+- ✅ OIDC with AMR claim but no acr_values_supported
+- ✅ OIDC with both ACR and AMR claims but no values
+- ✅ Standard NIST AAL format (all three levels)
+- ✅ AAL2 as highest level
+- ✅ AAL1 only support
+- ✅ Okta-style ACR values (`urn:okta:loa:*`, `phr`, `phrh`)
+- ✅ MFA pattern detection (`mfa`, `2fa`, `basic`)
+- ✅ Custom/unmapped ACR values with medium confidence
+
+**Pattern Matching Improvements**:
+- Changed generic terms to exact matches (`high`, `basic`, `low`)
+- Prevents false positives from composite values like `custom:level:high`
+- Maintains support for standard patterns (NIST URN, Okta format, MFA keywords)
+
+**Build Status**: ✅ Clean build
+**Test Status**: ✅ All 14 tests passing, 100% coverage

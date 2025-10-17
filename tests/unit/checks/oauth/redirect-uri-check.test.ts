@@ -1,20 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TokenStorageCheck } from '../../src/checks/oauth/token-storage.js';
-import { HttpClient, type OAuthMetadata } from '../../src/auditor/http-client.js';
-import { CheckContext, CheckStatus, Severity } from '../../src/types/index.js';
+import { RedirectURICheck } from '../../../../src/checks/oauth/redirect-uri.js';
+import { HttpClient, type OAuthMetadata } from '../../../../src/auditor/http-client.js';
+import { CheckContext, CheckStatus, Severity } from '../../../../src/types/index.js';
 import MockAdapter from 'axios-mock-adapter';
 import axios from 'axios';
 
-describe('TokenStorageCheck', () => {
+describe('RedirectURICheck', () => {
   let mock: MockAdapter;
   let httpClient: HttpClient;
-  let check: TokenStorageCheck;
+  let check: RedirectURICheck;
   let context: CheckContext;
 
   beforeEach(() => {
     mock = new MockAdapter(axios);
     httpClient = new HttpClient({ timeout: 5000, userAgent: 'Test-Agent' });
-    check = new TokenStorageCheck();
+    check = new RedirectURICheck();
     context = {
       targetUrl: 'https://example.com',
       config: {},
@@ -24,60 +24,16 @@ describe('TokenStorageCheck', () => {
 
   describe('check properties', () => {
     it('should have correct check metadata', () => {
-      expect(check.id).toBe('oauth-token-storage');
-      expect(check.name).toBe('Token Storage Security Check');
+      expect(check.id).toBe('oauth-redirect-uri');
+      expect(check.name).toBe('Redirect URI Validation Check');
       expect(check.category).toBe('oauth');
-      expect(check.defaultSeverity).toBe(Severity.HIGH);
-      expect(check.description).toContain('token');
-      expect(check.description).toContain('storage');
+      expect(check.defaultSeverity).toBe(Severity.CRITICAL);
+      expect(check.description).toContain('redirect URI');
     });
   });
 
   describe('execute() - PASS scenarios', () => {
-    it('should pass when token endpoint uses HTTPS', async () => {
-      const mockMetadata: OAuthMetadata = {
-        issuer: 'https://example.com',
-        authorization_endpoint: 'https://example.com/oauth/authorize',
-        token_endpoint: 'https://example.com/oauth/token',
-        token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
-      };
-
-      mock
-        .onGet('https://example.com/.well-known/oauth-authorization-server')
-        .reply(200, mockMetadata);
-
-      const result = await check.run(context);
-
-      expect(result.status).toBe(CheckStatus.PASS);
-      expect(result.message).toContain('Token endpoint properly configured');
-      expect(result.message).toContain('HTTPS');
-      expect(result.metadata).toHaveProperty('issuer');
-      expect(result.metadata).toHaveProperty('token_endpoint');
-      expect(result.metadata).toHaveProperty('uses_https', true);
-      expect(result.metadata).toHaveProperty('auth_methods');
-      expect(result.metadata).toHaveProperty('client_storage_recommendations');
-    });
-
-    it('should pass with secure authentication methods', async () => {
-      const mockMetadata: OAuthMetadata = {
-        issuer: 'https://example.com',
-        authorization_endpoint: 'https://example.com/oauth/authorize',
-        token_endpoint: 'https://example.com/oauth/token',
-        token_endpoint_auth_methods_supported: ['private_key_jwt', 'client_secret_jwt'],
-      };
-
-      mock
-        .onGet('https://example.com/.well-known/oauth-authorization-server')
-        .reply(200, mockMetadata);
-
-      const result = await check.run(context);
-
-      expect(result.status).toBe(CheckStatus.PASS);
-      expect(result.message).toContain('private_key_jwt');
-      expect(result.message).toContain('client_secret_jwt');
-    });
-
-    it('should pass when no auth methods specified', async () => {
+    it('should pass when authorization endpoint is found', async () => {
       const mockMetadata: OAuthMetadata = {
         issuer: 'https://example.com',
         authorization_endpoint: 'https://example.com/oauth/authorize',
@@ -91,14 +47,19 @@ describe('TokenStorageCheck', () => {
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.PASS);
-      expect(result.message).toContain('Ensure proper client authentication');
+      expect(result.message).toContain('Redirect URI validation');
+      expect(result.metadata).toHaveProperty('issuer', 'https://example.com');
+      expect(result.metadata).toHaveProperty('authorization_endpoint');
+      expect(result.metadata).toHaveProperty('has_registration_endpoint', false);
+      expect(result.metadata).toHaveProperty('recommendations');
     });
 
-    it('should allow HTTP for localhost', async () => {
+    it('should pass with registration endpoint support', async () => {
       const mockMetadata: OAuthMetadata = {
-        issuer: 'http://localhost:8080',
-        authorization_endpoint: 'http://localhost:8080/oauth/authorize',
-        token_endpoint: 'http://localhost:8080/oauth/token',
+        issuer: 'https://example.com',
+        authorization_endpoint: 'https://example.com/oauth/authorize',
+        token_endpoint: 'https://example.com/oauth/token',
+        registration_endpoint: 'https://example.com/oauth/register',
       };
 
       mock
@@ -108,7 +69,31 @@ describe('TokenStorageCheck', () => {
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.PASS);
-      expect(result.metadata?.uses_https).toBe(false);
+      expect(result.message).toContain('dynamic client registration');
+      expect(result.metadata).toHaveProperty('has_registration_endpoint', true);
+      expect(result.metadata).toHaveProperty('registration_endpoint');
+    });
+
+    it('should include security recommendations in metadata', async () => {
+      const mockMetadata: OAuthMetadata = {
+        issuer: 'https://example.com',
+        authorization_endpoint: 'https://example.com/oauth/authorize',
+        token_endpoint: 'https://example.com/oauth/token',
+      };
+
+      mock
+        .onGet('https://example.com/.well-known/oauth-authorization-server')
+        .reply(200, mockMetadata);
+
+      const result = await check.run(context);
+
+      expect(result.status).toBe(CheckStatus.PASS);
+      const recommendations = result.metadata?.recommendations as string[];
+      expect(recommendations).toBeDefined();
+      expect(recommendations.length).toBeGreaterThan(0);
+      expect(recommendations.some((r: string) => r.includes('exact match'))).toBe(true);
+      expect(recommendations.some((r: string) => r.includes('HTTPS'))).toBe(true);
+      expect(recommendations.some((r: string) => r.includes('open redirect'))).toBe(true);
     });
   });
 
@@ -126,82 +111,42 @@ describe('TokenStorageCheck', () => {
 
       expect(result.status).toBe(CheckStatus.WARNING);
       expect(result.message).toContain('Unable to discover OAuth metadata');
-      expect(result.message).toContain('Could not verify token endpoint security');
-      expect(result.remediation).toContain('Token Storage');
+      expect(result.message).toContain('Could not verify redirect URI validation');
+      expect(result.message).toContain('Attempted endpoints:');
+      expect(result.message).toContain('404 Not Found');
+      expect(result.remediation).toContain('Redirect URI');
+      expect(result.remediation).toContain('exact');
       expect(result.remediation).toContain('HTTPS');
-      expect(result.remediation).toContain('localStorage');
       expect(result.metadata).toHaveProperty('attempts');
     });
 
-    it('should warn when "none" authentication is supported', async () => {
-      const mockMetadata: OAuthMetadata = {
-        issuer: 'https://example.com',
-        authorization_endpoint: 'https://example.com/oauth/authorize',
-        token_endpoint: 'https://example.com/oauth/token',
-        token_endpoint_auth_methods_supported: ['none', 'client_secret_post'],
-      };
-
+    it('should provide comprehensive remediation guidance', async () => {
       mock
         .onGet('https://example.com/.well-known/oauth-authorization-server')
-        .reply(200, mockMetadata);
+        .reply(404);
+
+      mock
+        .onGet('https://example.com/.well-known/openid-configuration')
+        .reply(404);
 
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.WARNING);
-      expect(result.message).toContain("'none' authentication method");
-      expect(result.message).toContain('public clients');
-      expect(result.metadata).toHaveProperty('warnings');
-      const warnings = result.metadata?.warnings as string[];
-      expect(warnings).toBeDefined();
-      expect(warnings.some((w: string) => w.includes("'none'"))).toBe(true);
-    });
-
-    it('should warn about insecure authentication methods', async () => {
-      const mockMetadata: OAuthMetadata = {
-        issuer: 'https://example.com',
-        authorization_endpoint: 'https://example.com/oauth/authorize',
-        token_endpoint: 'https://example.com/oauth/token',
-        token_endpoint_auth_methods_supported: ['client_secret_post'],
-      };
-
-      mock
-        .onGet('https://example.com/.well-known/oauth-authorization-server')
-        .reply(200, mockMetadata);
-
-      const result = await check.run(context);
-
-      expect(result.status).toBe(CheckStatus.WARNING);
-      expect(result.message).toContain('more secure methods');
-      expect(result.message).toContain('private_key_jwt');
-    });
-
-    it('should provide client-side storage recommendations in warnings', async () => {
-      const mockMetadata: OAuthMetadata = {
-        issuer: 'https://example.com',
-        authorization_endpoint: 'https://example.com/oauth/authorize',
-        token_endpoint: 'https://example.com/oauth/token',
-        token_endpoint_auth_methods_supported: ['none'],
-      };
-
-      mock
-        .onGet('https://example.com/.well-known/oauth-authorization-server')
-        .reply(200, mockMetadata);
-
-      const result = await check.run(context);
-
-      expect(result.status).toBe(CheckStatus.WARNING);
-      expect(result.remediation).toContain('localStorage');
-      expect(result.remediation).toContain('httpOnly');
-      expect(result.remediation).toContain('SameSite');
+      expect(result.remediation).toContain('Registration Phase');
+      expect(result.remediation).toContain('Authorization Request');
+      expect(result.remediation).toContain('Security Rules');
+      expect(result.remediation).toContain('validateRedirectURI');
+      expect(result.remediation).toContain('Open redirect');
+      expect(result.remediation).toContain('RFC 6749');
     });
   });
 
   describe('execute() - FAIL scenarios', () => {
-    it('should fail when no token endpoint is found', async () => {
+    it('should fail when no authorization endpoint is found', async () => {
       const mockMetadata: OAuthMetadata = {
         issuer: 'https://example.com',
-        authorization_endpoint: 'https://example.com/oauth/authorize',
-        // Missing token_endpoint
+        // Missing authorization_endpoint
+        token_endpoint: 'https://example.com/oauth/token',
       };
 
       mock
@@ -211,31 +156,11 @@ describe('TokenStorageCheck', () => {
       const result = await check.run(context);
 
       expect(result.status).toBe(CheckStatus.FAIL);
-      expect(result.severity).toBe(Severity.CRITICAL);
-      expect(result.message).toContain('No token endpoint');
-      expect(result.message).toContain('required');
-      expect(result.remediation).toContain('token_endpoint');
-    });
-
-    it('should fail when token endpoint uses HTTP (not localhost)', async () => {
-      const mockMetadata: OAuthMetadata = {
-        issuer: 'http://example.com',
-        authorization_endpoint: 'http://example.com/oauth/authorize',
-        token_endpoint: 'http://example.com/oauth/token',
-      };
-
-      mock
-        .onGet('https://example.com/.well-known/oauth-authorization-server')
-        .reply(200, mockMetadata);
-
-      const result = await check.run(context);
-
-      expect(result.status).toBe(CheckStatus.FAIL);
-      expect(result.severity).toBe(Severity.CRITICAL);
-      expect(result.message).toContain('insecure HTTP protocol');
-      expect(result.message).toContain('MUST be transmitted over HTTPS');
-      expect(result.remediation).toContain('HTTPS');
-      expect(result.metadata).toHaveProperty('protocol', 'http:');
+      expect(result.severity).toBe(Severity.HIGH);
+      expect(result.message).toContain('No authorization endpoint');
+      expect(result.message).toContain('Cannot validate redirect URI');
+      expect(result.remediation).toContain('authorization_endpoint');
+      expect(result.metadata).toHaveProperty('issuer');
     });
   });
 
@@ -332,7 +257,7 @@ describe('TokenStorageCheck', () => {
       await check.run(contextWithLogger);
 
       expect(logs.some((log) => log.includes('Discovering OAuth metadata'))).toBe(true);
-      expect(logs.some((log) => log.includes('token endpoint'))).toBe(true);
+      expect(logs.some((log) => log.includes('redirect URI'))).toBe(true);
     });
   });
 });
