@@ -105,6 +105,7 @@ const ReportingConfigSchema = z
       .optional(),
     includeRemediation: z.boolean().optional(),
     includeMetadata: z.boolean().optional(),
+    includeTimestamp: z.boolean().optional(),
   })
   .optional();
 
@@ -112,11 +113,11 @@ const ReportingConfigSchema = z
  * Main auditor configuration schema
  */
 export const AuditorConfigSchema = z.object({
-  target: z.string().url(),
+  target: z.string().url().optional(),
   oauth: OAuthCheckConfigSchema,
   nist: NISTCheckConfigSchema,
   owasp: OWASPCheckConfigSchema,
-  checks: ChecksConfigSchema,
+  checks: ChecksConfigSchema.nullable(),
   reporting: ReportingConfigSchema,
   timeout: z.number().int().positive().optional(),
   userAgent: z.string().optional(),

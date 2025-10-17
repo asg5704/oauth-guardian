@@ -1,8 +1,9 @@
 # OAuth Guardian Configuration File
 # Copy this file to oauth-guardian.config.yml and customize for your needs
 
-# Target URL will be taken from CLI argument, but can be set here
-target: https://auth.example.com
+# Target URL to audit - can be set here or overridden via CLI argument
+# If specified in config, CLI target argument is optional
+target: https://api.va.gov/oauth2/benefits-documents/system/v1/
 
 # OAuth 2.0 / RFC Compliance Checks
 oauth:
@@ -47,8 +48,8 @@ checks:
 
 # Reporting Configuration
 reporting:
-  format: terminal        # Output format: json, html, markdown, csv, sarif, terminal
-  # output: ./report.html # Output file path (omit for stdout)
+  format: html        # Output format: json, html, markdown, csv, sarif, terminal
+  output: ./report.html # Output file path (omit for stdout)
   failOn: critical        # Fail with exit code 1 on this severity: critical, high, medium, low, info
   includeRemediation: true      # Include remediation guidance in reports
   includeMetadata: true         # Include metadata in reports

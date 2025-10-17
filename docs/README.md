@@ -552,32 +552,32 @@ Not just security vulnerabilities, but:
 
 **Day 15-17: Configuration System**
 
-- [ ] Create `src/config/defaults.ts`:
-  - [ ] Export default configuration object
-  - [ ] Default enabled checks, severity levels
-- [ ] Create `src/config/loader.ts`:
-  - [ ] Install: `npm install js-yaml`
-  - [ ] Load config from `oauth-guardian.config.yml`
-  - [ ] Merge with defaults
-  - [ ] Validate schema
-- [ ] Create `src/config/schema.ts`:
-  - [ ] Install: `npm install zod`
-  - [ ] Define Zod schema for config validation
-- [ ] Update CLI to accept `--config <path>` flag
-- [ ] Create example config file: `oauth-guardian.config.example.yml`
+- [x] Create `src/config/defaults.ts`:
+  - [x] Export default configuration object
+  - [x] Default enabled checks, severity levels
+- [x] Create `src/config/loader.ts`:
+  - [x] Install: `npm install js-yaml`
+  - [x] Load config from `oauth-guardian.config.yml`
+  - [x] Merge with defaults
+  - [x] Validate schema
+- [x] Create `src/config/schema.ts`:
+  - [x] Install: `npm install zod`
+  - [x] Define Zod schema for config validation
+- [x] Update CLI to accept `--config <path>` flag
+- [x] Create example config file: `oauth-guardian.config.example.yml`
 
 **Day 18-21: Basic HTML Report**
 
-- [ ] Create `templates/html-report.hbs`:
-  - [ ] Install: `npm install handlebars`
-  - [ ] Simple HTML template with embedded CSS
-  - [ ] Display findings in a table with severity badges
-  - [ ] Summary section at top
-- [ ] Create `src/reporters/html-reporter.ts`:
-  - [ ] Use Handlebars to render template
-  - [ ] Write to file specified by `--output` flag
-- [ ] Update CLI to support `--format html --output report.html`
-- [ ] Test full end-to-end flow
+- [x] Create `templates/html-report.hbs`:
+  - [x] Install: `npm install handlebars`
+  - [x] Simple HTML template with embedded CSS
+  - [x] Display findings in a table with severity badges
+  - [x] Summary section at top
+- [x] Create `src/reporters/html-reporter.ts`:
+  - [x] Use Handlebars to render template
+  - [x] Write to file specified by `--output` flag
+- [x] Update CLI to support `--format html --output report.html`
+- [x] Test full end-to-end flow
 
 **MVP Milestone**: At the end of Week 3, you should have:
 

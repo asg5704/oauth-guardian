@@ -130,7 +130,7 @@ export async function discoverAndLoadConfig(): Promise<AuditorConfig | null> {
  * 3. Fall back to defaults with target
  */
 export async function loadConfig(
-  target: string,
+  target?: string,
   configPath?: string
 ): Promise<AuditorConfig> {
   // If explicit config path provided, load it
@@ -141,9 +141,11 @@ export async function loadConfig(
         `Configuration errors:\n${result.errors?.join("\n")}`
       );
     }
-    // Override target if provided
+    // Override target only if explicitly provided via CLI
     if (result.config) {
-      result.config.target = target;
+      if (target) {
+        result.config.target = target;
+      }
       return result.config;
     }
   }
@@ -151,11 +153,19 @@ export async function loadConfig(
   // Try auto-discovery
   const discovered = await discoverAndLoadConfig();
   if (discovered) {
-    discovered.target = target;
+    // Override target only if explicitly provided via CLI
+    if (target) {
+      discovered.target = target;
+    }
     return discovered;
   }
 
-  // Fall back to defaults
+  // Fall back to defaults - target is required if no config file
+  if (!target) {
+    throw new Error(
+      "No target URL provided. Either provide a target URL as an argument or specify it in a configuration file."
+    );
+  }
   return getDefaultConfig({ target });
 }
 

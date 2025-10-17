@@ -87,6 +87,9 @@ export interface ReportingConfig {
 
   /** Include metadata in reports */
   includeMetadata?: boolean;
+
+  /** Include timestamps in reports */
+  includeTimestamp?: boolean;
 }
 
 /**

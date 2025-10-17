@@ -23,6 +23,18 @@ export interface HTMLReporterOptions {
    * @default true
    */
   includeRemediation?: boolean;
+
+  /**
+   * Include metadata in reports
+   * @default true
+   */
+  includeMetadata?: boolean;
+
+  /**
+   * Include timestamps in reports
+   * @default true
+   */
+  includeTimestamp?: boolean;
 }
 
 export class HTMLReporter {
@@ -35,6 +47,8 @@ export class HTMLReporter {
         options.templatePath ??
         join(__dirname, "../../templates/html-report.hbs"),
       includeRemediation: options.includeRemediation ?? true,
+      includeMetadata: options.includeMetadata ?? true,
+      includeTimestamp: options.includeTimestamp ?? true,
     };
 
     this.registerHelpers();
@@ -127,13 +141,21 @@ export class HTMLReporter {
 
     // Prepare data for template
     const templateData = {
-      metadata: {
-        targetUrl: report.metadata.targetUrl,
-        startTime: report.metadata.startTime,
-        endTime: report.metadata.endTime,
-        executionTime: report.metadata.executionTime,
-        version: report.metadata.version,
-      },
+      metadata: this.options.includeMetadata
+        ? {
+            targetUrl: report.metadata.targetUrl,
+            startTime: this.options.includeTimestamp
+              ? report.metadata.startTime
+              : undefined,
+            endTime: this.options.includeTimestamp
+              ? report.metadata.endTime
+              : undefined,
+            executionTime: this.options.includeTimestamp
+              ? report.metadata.executionTime
+              : undefined,
+            version: report.metadata.version,
+          }
+        : undefined,
       summary: {
         totalChecks: report.summary.totalChecks,
         passed: report.summary.passed,
@@ -166,13 +188,21 @@ export class HTMLReporter {
 
     // Prepare data for template
     const templateData = {
-      metadata: {
-        targetUrl: report.metadata.targetUrl,
-        startTime: report.metadata.startTime,
-        endTime: report.metadata.endTime,
-        executionTime: report.metadata.executionTime,
-        version: report.metadata.version,
-      },
+      metadata: this.options.includeMetadata
+        ? {
+            targetUrl: report.metadata.targetUrl,
+            startTime: this.options.includeTimestamp
+              ? report.metadata.startTime
+              : undefined,
+            endTime: this.options.includeTimestamp
+              ? report.metadata.endTime
+              : undefined,
+            executionTime: this.options.includeTimestamp
+              ? report.metadata.executionTime
+              : undefined,
+            version: report.metadata.version,
+          }
+        : undefined,
       summary: {
         totalChecks: report.summary.totalChecks,
         passed: report.summary.passed,

@@ -44,6 +44,7 @@ export const DEFAULT_CONFIG: Partial<AuditorConfig> = {
     failOn: Severity.CRITICAL,
     includeRemediation: true,
     includeMetadata: true,
+    includeTimestamp: true,
   },
 
   // HTTP client settings
@@ -59,9 +60,16 @@ export const DEFAULT_CONFIG: Partial<AuditorConfig> = {
  * Get default config merged with user overrides
  */
 export function getDefaultConfig(overrides?: Partial<AuditorConfig>): AuditorConfig {
+  // Validate target is present
+  if (!overrides?.target) {
+    throw new Error(
+      "Target URL is required. Provide it via CLI argument or configuration file."
+    );
+  }
+
   // Start with defaults
   const config: AuditorConfig = {
-    target: overrides?.target || "",
+    target: overrides.target,
     oauth: { ...DEFAULT_CONFIG.oauth, ...overrides?.oauth },
     nist: { ...DEFAULT_CONFIG.nist, ...overrides?.nist },
     owasp: { ...DEFAULT_CONFIG.owasp, ...overrides?.owasp },
