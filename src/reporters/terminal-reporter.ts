@@ -124,33 +124,51 @@ export class TerminalReporter {
     lines.push(chalk.bold("Check Results:"));
     lines.push("");
 
-    for (const result of report.results) {
-      const icon = this.getStatusIcon(result.status);
-      const statusColor = this.getStatusColor(result.status);
+    // Group results by category
+    const categories = Array.from(
+      new Set(report.results.map((r) => r.category))
+    ).sort();
 
-      lines.push(`${icon} ${chalk.bold(result.name)}`);
-      lines.push(`  ${chalk.gray(result.description)}`);
+    for (const category of categories) {
+      const categoryResults = report.results.filter(
+        (r) => r.category === category
+      );
 
-      if (result.message) {
-        lines.push(`  ${statusColor(result.message)}`);
-      }
+      if (categoryResults.length === 0) continue;
 
-      // Show remediation in verbose mode for failures and warnings
-      if (
-        this.options.verbose &&
-        (result.status === CheckStatus.FAIL ||
-          result.status === CheckStatus.WARNING) &&
-        result.remediation
-      ) {
-        lines.push("");
-        lines.push(`  ${chalk.bold("Remediation:")}`);
-        const remediationLines = result.remediation.split("\n");
-        remediationLines.forEach((line) => {
-          lines.push(`  ${line}`);
-        });
-      }
-
+      // Category header
+      const categoryName = this.getCategoryDisplayName(category);
+      lines.push(chalk.bold.cyan(`─── ${categoryName} ───`));
       lines.push("");
+
+      for (const result of categoryResults) {
+        const icon = this.getStatusIcon(result.status);
+        const statusColor = this.getStatusColor(result.status);
+
+        lines.push(`${icon} ${chalk.bold(result.name)}`);
+        lines.push(`  ${chalk.gray(result.description)}`);
+
+        if (result.message) {
+          lines.push(`  ${statusColor(result.message)}`);
+        }
+
+        // Show remediation in verbose mode for failures and warnings
+        if (
+          this.options.verbose &&
+          (result.status === CheckStatus.FAIL ||
+            result.status === CheckStatus.WARNING) &&
+          result.remediation
+        ) {
+          lines.push("");
+          lines.push(`  ${chalk.bold("Remediation:")}`);
+          const remediationLines = result.remediation.split("\n");
+          remediationLines.forEach((line) => {
+            lines.push(`  ${line}`);
+          });
+        }
+
+        lines.push("");
+      }
     }
 
     return lines;
@@ -306,6 +324,20 @@ export class TerminalReporter {
     } else {
       return chalk.green(score.toString());
     }
+  }
+
+  /**
+   * Get display name for category
+   */
+  private getCategoryDisplayName(category: string): string {
+    const categoryNames: Record<string, string> = {
+      oauth: "OAuth 2.0 Checks",
+      nist: "NIST 800-63B Checks",
+      owasp: "OWASP Checks",
+      custom: "Custom Checks",
+    };
+
+    return categoryNames[category.toLowerCase()] || category.toUpperCase();
   }
 
   /**

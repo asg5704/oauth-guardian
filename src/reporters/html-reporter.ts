@@ -55,6 +55,39 @@ export class HTMLReporter {
   }
 
   /**
+   * Group results by category
+   */
+  private groupResultsByCategory(report: Report) {
+    const categories = Array.from(
+      new Set(report.results.map((r) => r.category))
+    ).sort();
+
+    return categories.map((category) => {
+      const categoryResults = report.results.filter(
+        (r) => r.category === category
+      );
+
+      const categoryNames: Record<string, string> = {
+        oauth: "OAuth 2.0 Checks",
+        nist: "NIST 800-63B Checks",
+        owasp: "OWASP Checks",
+        custom: "Custom Checks",
+      };
+
+      return {
+        category,
+        displayName: categoryNames[category.toLowerCase()] || category.toUpperCase(),
+        results: this.options.includeRemediation
+          ? categoryResults
+          : categoryResults.map((r) => ({
+              ...r,
+              remediation: undefined,
+            })),
+      };
+    });
+  }
+
+  /**
    * Register Handlebars helpers
    */
   private registerHelpers(): void {
@@ -139,6 +172,9 @@ export class HTMLReporter {
       throw new Error("Template not loaded");
     }
 
+    // Group results by category
+    const resultsByCategory = this.groupResultsByCategory(report);
+
     // Prepare data for template
     const templateData = {
       metadata: this.options.includeMetadata
@@ -172,6 +208,7 @@ export class HTMLReporter {
             ...r,
             remediation: undefined,
           })),
+      resultsByCategory,
     };
 
     // Generate HTML
@@ -186,6 +223,9 @@ export class HTMLReporter {
       throw new Error("Template not loaded. Call loadTemplate() first or use generate()");
     }
 
+    // Group results by category
+    const resultsByCategory = this.groupResultsByCategory(report);
+
     // Prepare data for template
     const templateData = {
       metadata: this.options.includeMetadata
@@ -219,6 +259,7 @@ export class HTMLReporter {
             ...r,
             remediation: undefined,
           })),
+      resultsByCategory,
     };
 
     // Generate HTML
