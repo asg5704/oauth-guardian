@@ -19,12 +19,17 @@ Currently implemented:
 - ✅ Type definitions for checks, config, and reports
 - ✅ HTTP client with OAuth metadata discovery
 - ✅ Base check class for security audits
+- ✅ Security checks (PKCE, state, redirect URI, etc.)
+- ✅ Audit engine
+- ✅ Report generation (JSON, HTML, Markdown, etc.)
+- ✅ Configuration system
 
 Not yet implemented:
-- ⏳ Security checks (PKCE, state, redirect URI, etc.)
-- ⏳ Audit engine
-- ⏳ Report generation (JSON, HTML, Markdown, etc.)
-- ⏳ Configuration system
+- ⏳ NIST AAL compliance
+- AAL1
+- AAL2
+- AAL3
+
 
 See [docs/phase-1.md](docs/phase-1.md) for detailed development progress.
 
