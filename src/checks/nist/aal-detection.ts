@@ -44,7 +44,9 @@ export class AALDetectionCheck extends BaseNISTCheck {
     const discoveryResult = await this.discoverMetadata(context);
 
     if (!discoveryResult.success || !discoveryResult.metadata) {
-      return this.createMetadataWarning(discoveryResult.error || "Metadata discovery failed");
+      return this.createMetadataWarning(
+        discoveryResult.error || "Metadata discovery failed"
+      );
     }
 
     const metadata = discoveryResult.metadata;
@@ -74,33 +76,40 @@ export class AALDetectionCheck extends BaseNISTCheck {
       if (hasACRClaim || hasAMRClaim) {
         message += `\n\nThe provider supports ${hasACRClaim ? "ACR" : ""}${
           hasACRClaim && hasAMRClaim ? " and " : ""
-        }${hasAMRClaim ? "AMR" : ""} claims, but does not advertise specific ACR values in metadata.`;
-        message += "\n\nAAL support may be available but requires manual verification:";
-        message += "\n  1. Consult provider documentation for supported ACR values";
+        }${
+          hasAMRClaim ? "AMR" : ""
+        } claims, but does not advertise specific ACR values in metadata.`;
+        message +=
+          "\n\nAAL support may be available but requires manual verification:";
+        message +=
+          "\n  1. Consult provider documentation for supported ACR values";
         message += "\n  2. Test authentication flows with acr_values parameter";
         message += "\n  3. Inspect ID token claims for acr and amr values";
       } else {
-        message += "\n\nThe provider does not advertise ACR or AMR claim support in metadata.";
+        message +=
+          "\n\nThe provider does not advertise ACR or AMR claim support in metadata.";
       }
 
-      return this.warning(
-        message,
-        this.getACRImplementationGuidance(),
-        {
-          issuer: metadata.issuer,
-          acr_claim_supported: hasACRClaim,
-          amr_claim_supported: hasAMRClaim,
-          claims_supported: metadata.claims_supported,
-        }
-      );
+      return this.warning(message, this.getACRImplementationGuidance(), {
+        issuer: metadata.issuer,
+        acr_claim_supported: hasACRClaim,
+        amr_claim_supported: hasAMRClaim,
+        claims_supported: metadata.claims_supported,
+      });
     }
 
     // Case 2: ACR values found with unmapped values
     if (acrAnalysis.unmappedValues.length > 0) {
-      const mappedAALs = supportedAALs.map((aal) => this.formatAAL(aal)).join(", ");
-      const unmappedList = acrAnalysis.unmappedValues.map((v) => `  - ${v}`).join("\n");
+      const mappedAALs = supportedAALs
+        .map((aal) => this.formatAAL(aal))
+        .join(", ");
+      const unmappedList = acrAnalysis.unmappedValues
+        .map((v) => `  - ${v}`)
+        .join("\n");
 
-      const message = `AAL support detected with ${acrAnalysis.confidence} confidence.
+      const message = `AAL support detected with ${
+        acrAnalysis.confidence
+      } confidence.
 
 Detected AAL levels: ${mappedAALs}
 Highest AAL: ${highestAAL ? this.formatAAL(highestAAL) : "Unknown"}
@@ -110,25 +119,26 @@ ${unmappedList}
 
 These may be provider-specific or custom ACR values. Consult your provider's documentation for their meaning.`;
 
-      return this.pass(
-        message,
-        {
-          issuer: metadata.issuer,
-          highest_aal: highestAAL,
-          supported_aals: supportedAALs,
-          detected_acr_values: acrAnalysis.acrValues,
-          unmapped_acr_values: acrAnalysis.unmappedValues,
-          confidence: acrAnalysis.confidence,
-          acr_values_supported: metadata.acr_values_supported,
-        }
-      );
+      return this.pass(message, {
+        issuer: metadata.issuer,
+        highest_aal: highestAAL,
+        supported_aals: supportedAALs,
+        detected_acr_values: acrAnalysis.acrValues,
+        unmapped_acr_values: acrAnalysis.unmappedValues,
+        confidence: acrAnalysis.confidence,
+        acr_values_supported: metadata.acr_values_supported,
+      });
     }
 
     // Case 3: All ACR values successfully mapped
-    const aalList = supportedAALs.map((aal) => this.formatAAL(aal)).join("\n  - ");
+    const aalList = supportedAALs
+      .map((aal) => this.formatAAL(aal))
+      .join("\n  - ");
     const acrList = acrAnalysis.acrValues.map((v) => `  - ${v}`).join("\n");
 
-    const message = `NIST AAL support detected with ${acrAnalysis.confidence} confidence.
+    const message = `NIST AAL support detected with ${
+      acrAnalysis.confidence
+    } confidence.
 
 Supported AAL levels:
   - ${aalList}
@@ -140,18 +150,15 @@ ${acrList}
 
 The provider properly advertises AAL support in metadata, enabling automated compliance verification.`;
 
-    return this.pass(
-      message,
-      {
-        issuer: metadata.issuer,
-        highest_aal: highestAAL,
-        supported_aals: supportedAALs,
-        detected_acr_values: acrAnalysis.acrValues,
-        confidence: acrAnalysis.confidence,
-        acr_values_supported: metadata.acr_values_supported,
-        claims_supported: metadata.claims_supported,
-      }
-    );
+    return this.pass(message, {
+      issuer: metadata.issuer,
+      highest_aal: highestAAL,
+      supported_aals: supportedAALs,
+      detected_acr_values: acrAnalysis.acrValues,
+      confidence: acrAnalysis.confidence,
+      acr_values_supported: metadata.acr_values_supported,
+      claims_supported: metadata.claims_supported,
+    });
   }
 
   /**
@@ -165,6 +172,7 @@ To implement NIST AAL support with proper metadata advertising:
    Endpoint: /.well-known/openid-configuration
 
 2. Add acr_values_supported to your metadata response:
+<pre><code>
 {
   "issuer": "https://your-server.com",
   "acr_values_supported": [
@@ -177,7 +185,7 @@ To implement NIST AAL support with proper metadata advertising:
     "acr", "amr", "auth_time"
   ]
 }
-
+</code></pre>
 3. Support the acr_values parameter in authorization requests:
 GET /authorize?
   response_type=code
@@ -187,6 +195,7 @@ GET /authorize?
   &acr_values=urn:nist:800-63-3:aal:2
 
 4. Include acr and amr claims in ID tokens:
+<pre><code>
 {
   "iss": "https://your-server.com",
   "sub": "user123",
@@ -196,6 +205,7 @@ GET /authorize?
   "acr": "urn:nist:800-63-3:aal:2",
   "amr": ["pwd", "otp"]
 }
+</code></pre>
 
 5. Implement authentication flows for each AAL level:
    - AAL1: Single-factor (password) or multi-factor

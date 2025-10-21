@@ -452,31 +452,38 @@
 
         <section class="results">
             <h2>Check Results</h2>
-            {{#each results}}
-            <div class="check-result {{this.status}}">
-                <div class="check-header">
-                    <div>
-                        <span class="check-title">{{this.name}}</span>
-                        {{#if this.severity}}
-                        <span class="severity-badge severity-{{this.severity}}">{{this.severity}}</span>
-                        {{/if}}
+            {{#each resultsByCategory}}
+            <div style="margin-bottom: 40px;">
+                <h3 style="color: #667eea; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                    {{this.displayName}}
+                </h3>
+                {{#each this.results}}
+                <div class="check-result {{this.status}}">
+                    <div class="check-header">
+                        <div>
+                            <span class="check-title">{{this.name}}</span>
+                            {{#if this.severity}}
+                            <span class="severity-badge severity-{{this.severity}}">{{this.severity}}</span>
+                            {{/if}}
+                        </div>
+                        <span class="check-status {{this.status}}">{{this.status}}</span>
                     </div>
-                    <span class="check-status {{this.status}}">{{this.status}}</span>
-                </div>
-                <div class="check-description">{{this.description}}</div>
+                    <div class="check-description">{{this.description}}</div>
 
-                {{#if this.message}}
-                <div class="check-message">
-                    {{this.message}}
-                </div>
-                {{/if}}
+                    {{#if this.message}}
+                    <div class="check-message">
+                        {{this.message}}
+                    </div>
+                    {{/if}}
 
-                {{#if this.remediation}}
-                <div class="check-remediation">
-                    <h4>💡 Remediation</h4>
-                    <div>{{{formatRemediation this.remediation}}}</div>
+                    {{#if this.remediation}}
+                    <div class="check-remediation">
+                        <h4>💡 Remediation</h4>
+                        <div>{{{formatRemediation this.remediation}}}</div>
+                    </div>
+                    {{/if}}
                 </div>
-                {{/if}}
+                {{/each}}
             </div>
             {{/each}}
         </section>

@@ -15,6 +15,12 @@ import { PKCECheck } from "./checks/oauth/pkce.js";
 import { StateParameterCheck } from "./checks/oauth/state.js";
 import { RedirectURICheck } from "./checks/oauth/redirect-uri.js";
 import { TokenStorageCheck } from "./checks/oauth/token-storage.js";
+import {
+  AALDetectionCheck,
+  AAL1ComplianceCheck,
+  AAL2ComplianceCheck,
+  AAL3ComplianceCheck,
+} from "./checks/nist/index.js";
 import { JSONReporter } from "./reporters/json-reporter.js";
 import { TerminalReporter } from "./reporters/terminal-reporter.js";
 import { HTMLReporter } from "./reporters/html-reporter.js";
@@ -70,9 +76,24 @@ program
       }
       if (options.checks) {
         config.checks = config.checks || {};
-        config.checks.include = options.checks
-          .split(",")
-          .map((c: string) => c.trim());
+        const checkList = options.checks.split(",").map((c: string) => c.trim());
+
+        // Separate categories from check IDs
+        // Categories are: oauth, nist, owasp, custom
+        const validCategories = ["oauth", "nist", "owasp", "custom"];
+        const categories = checkList.filter((c: string) =>
+          validCategories.includes(c.toLowerCase())
+        );
+        const checkIds = checkList.filter(
+          (c: string) => !validCategories.includes(c.toLowerCase())
+        );
+
+        if (categories.length > 0) {
+          config.checks.categories = categories as any[];
+        }
+        if (checkIds.length > 0) {
+          config.checks.include = checkIds;
+        }
       }
       if (options.skipChecks) {
         config.checks = config.checks || {};
@@ -122,10 +143,16 @@ program
 
       // Register checks
       engine.registerChecks([
+        // OAuth 2.0 checks
         new PKCECheck(),
         new StateParameterCheck(),
         new RedirectURICheck(),
         new TokenStorageCheck(),
+        // NIST 800-63B checks
+        new AALDetectionCheck(),
+        new AAL1ComplianceCheck(),
+        new AAL2ComplianceCheck(),
+        new AAL3ComplianceCheck(),
       ]);
 
       // Run audit

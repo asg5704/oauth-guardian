@@ -7,3 +7,6 @@
 
 export * from "./base-nist-check.js";
 export * from "./aal-detection.js";
+export * from "./aal1-compliance.js";
+export * from "./aal2-compliance.js";
+export * from "./aal3-compliance.js";
