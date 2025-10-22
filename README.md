@@ -11,27 +11,31 @@
 
 ## ⚠️ Development Status
 
-**This project is in active development (Phase 1 - MVP).**
+**This project is in active development (Phase 2 - NIST Compliance).**
 
 Currently implemented:
-- ✅ Project foundation and TypeScript setup
-- ✅ CLI framework with commander
-- ✅ Type definitions for checks, config, and reports
-- ✅ HTTP client with OAuth metadata discovery
-- ✅ Base check class for security audits
-- ✅ Security checks (PKCE, state, redirect URI, etc.)
-- ✅ Audit engine
-- ✅ Report generation (JSON, HTML, Markdown, etc.)
-- ✅ Configuration system
+- ✅ **Phase 1 Complete**: Full OAuth 2.0 audit system
+  - ✅ Project foundation and TypeScript setup
+  - ✅ CLI framework with commander
+  - ✅ Type definitions for checks, config, and reports
+  - ✅ HTTP client with OAuth metadata discovery
+  - ✅ Base check class for security audits
+  - ✅ 4 OAuth 2.0 security checks (PKCE, state, redirect URI, token storage)
+  - ✅ Audit engine with category filtering
+  - ✅ 3 report formats (JSON, HTML, Terminal)
+  - ✅ YAML configuration system with validation
 
-Not yet implemented:
-- ⏳ NIST AAL compliance
-- AAL1
-- AAL2
-- AAL3
+- ✅ **Phase 2 In Progress** (85% complete): NIST 800-63B Compliance
+  - ✅ AAL1, AAL2, AAL3 compliance checks
+  - ✅ AAL detection and analysis
+  - ✅ Session management validation
+  - ✅ Authenticator lifecycle management
+  - ⏳ Enhanced HTML reports with charts (planned)
+  - ⏳ NIST compliance scorecards (planned)
 
+**Test Coverage**: 349 tests (320 passing), ~77% coverage
 
-See [docs/phase-1.md](docs/phase-1.md) for detailed development progress.
+See [docs/phase-1.md](docs/phase-1.md) and [docs/phase-2.md](docs/phase-2.md) for detailed development progress.
 
 ---
 
@@ -151,10 +155,29 @@ node dist/cli.js https://auth.example.com
 
 ### CLI Usage
 
+OAuth Guardian supports two modes of operation:
+
+#### Mode 1: Remote Discovery (Current)
+Audits a live OAuth provider by discovering its metadata endpoints:
+
 **Basic syntax:**
 ```bash
 oauth-guardian <target-url> [options]
 ```
+
+#### Mode 2: Local Repository Scan (Planned - Post-Phase 2)
+Scans local code repositories for OAuth security issues without requiring a running server:
+
+```bash
+# Coming soon!
+oauth-guardian scan [path] [options]
+```
+
+See [ROADMAP.md](ROADMAP.md) for details on the local scanning feature.
+
+---
+
+### Remote Discovery Mode
 
 **Available options:**
 
@@ -399,37 +422,56 @@ Contributions are welcome! This project is in active development.
 
 ## Roadmap
 
-### Phase 1: MVP (Weeks 1-3) - In Progress
+### Phase 1: MVP (Weeks 1-3) - ✅ Complete
 
-- [x] **Week 1**: Foundation & Project Setup ✅
-- [ ] **Week 2**: Core OAuth Checks & Basic Reporting
-- [ ] **Week 3**: Configuration System & HTML Reports
+- [x] **Week 1**: Foundation & Project Setup
+- [x] **Week 2**: Core OAuth Checks & Basic Reporting
+- [x] **Week 3**: Configuration System & HTML Reports
 
-### Phase 2: NIST Compliance (Weeks 4-5)
+**Delivered**: 4 OAuth checks, 3 report formats, YAML config, 118 tests
 
-- [ ] Authentication Assurance Level checks
-- [ ] Session management validation
-- [ ] Enhanced reporting with compliance scorecards
+### Phase 2: NIST Compliance (Weeks 4-5) - 85% Complete
 
-### Phase 3: Advanced Features (Weeks 6-8)
+- [x] **Week 4**: Authentication Assurance Level checks (AAL1, AAL2, AAL3)
+- [x] **Week 4**: Session management & authenticator lifecycle validation
+- [ ] **Week 5**: Enhanced reporting with compliance scorecards & charts
 
-- [ ] Token lifecycle checks
+**Delivered**: 6 NIST checks, AAL detection, 349 tests total
+
+### Phase 2.5: Local Scanning Mode (Post-Phase 2, Pre-Phase 3)
+
+**New capability**: Scan local code repositories without running server
+
+- [ ] **Dual-mode architecture** - Support both remote and local auditing
+- [ ] **Metadata file support** - Use local `.well-known` files
+- [ ] **Auto-detection** - Parse Node.js/TypeScript OAuth config
+- [ ] **Multi-language parsers** - Python, Java, Go support
+- [ ] **CI/CD integration** - Pre-deployment security scanning
+
+See [ROADMAP.md](ROADMAP.md) for detailed implementation plan.
+
+### Phase 3: OWASP & Advanced Features (Weeks 6-8)
+
+- [ ] OWASP Top 10 authentication checks
+- [ ] Token lifecycle validation
 - [ ] Custom rules engine
 - [ ] Additional report formats (CSV, Markdown, SARIF)
 
-### Phase 4: Testing & Documentation (Weeks 9-10)
+### Phase 4: Testing & Polish (Weeks 9-10)
 
-- [ ] 80%+ test coverage
+- [ ] 85%+ test coverage
 - [ ] Comprehensive documentation
 - [ ] CI/CD pipeline
+- [ ] Performance optimization
 
 ### Phase 5: Launch (Weeks 11-12)
 
 - [ ] npm package publishing
-- [ ] GitHub repository setup
-- [ ] Public announcement
+- [ ] GitHub repository public release
+- [ ] Community announcement
+- [ ] Documentation site
 
-See [docs/README.md](docs/README.md) for the complete implementation roadmap.
+See [ROADMAP.md](ROADMAP.md) for the complete implementation roadmap with timelines.
 
 ---
 

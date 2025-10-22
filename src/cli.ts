@@ -20,6 +20,8 @@ import {
   AAL1ComplianceCheck,
   AAL2ComplianceCheck,
   AAL3ComplianceCheck,
+  SessionManagementCheck,
+  AuthenticatorLifecycleCheck,
 } from "./checks/nist/index.js";
 import { JSONReporter } from "./reporters/json-reporter.js";
 import { TerminalReporter } from "./reporters/terminal-reporter.js";
@@ -153,6 +155,8 @@ program
         new AAL1ComplianceCheck(),
         new AAL2ComplianceCheck(),
         new AAL3ComplianceCheck(),
+        new SessionManagementCheck(),
+        new AuthenticatorLifecycleCheck(),
       ]);
 
       // Run audit
