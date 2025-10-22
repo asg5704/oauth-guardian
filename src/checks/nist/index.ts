@@ -10,3 +10,5 @@ export * from "./aal-detection.js";
 export * from "./aal1-compliance.js";
 export * from "./aal2-compliance.js";
 export * from "./aal3-compliance.js";
+export * from "./session-mgmt.js";
+export * from "./authenticators.js";
