@@ -12,6 +12,7 @@ import {
   Report,
   AuditSummary,
   ComplianceScorecard,
+  NISTAALCompliance,
   Finding,
   Severity,
   CheckStatus,
@@ -169,6 +170,7 @@ export class AuditEngine {
     const summary = this.generateSummary(results);
     const findings = this.generateFindings(results);
     const compliance = this.generateComplianceScorecard(results);
+    const nist = this.generateNISTAALCompliance(results);
 
     return {
       metadata: {
@@ -183,6 +185,7 @@ export class AuditEngine {
       results,
       findings,
       compliance,
+      nist,
     };
   }
 
@@ -335,6 +338,96 @@ export class AuditEngine {
       default:
         return category;
     }
+  }
+
+  /**
+   * Generate NIST AAL-specific compliance metrics
+   */
+  private generateNISTAALCompliance(
+    results: CheckResult[]
+  ): NISTAALCompliance | undefined {
+    // Filter for NIST AAL checks
+    const aalChecks = results.filter((r) =>
+      r.category === CheckCategory.NIST &&
+      (r.id.includes("aal1") || r.id.includes("aal2") || r.id.includes("aal3"))
+    );
+
+    // If no AAL checks were run, return undefined
+    if (aalChecks.length === 0) {
+      return undefined;
+    }
+
+    // Helper function to calculate compliance for an AAL level
+    const calculateAALCompliance = (aalLevel: string) => {
+      const levelChecks = results.filter(
+        (r) => r.id === `nist-${aalLevel}-compliance`
+      );
+
+      if (levelChecks.length === 0) {
+        return {
+          evaluated: false,
+          compliant: false,
+          compliancePercentage: 0,
+          passed: 0,
+          failed: 0,
+          warnings: 0,
+        };
+      }
+
+      const check = levelChecks[0];
+      if (!check) {
+        return {
+          evaluated: false,
+          compliant: false,
+          compliancePercentage: 0,
+          passed: 0,
+          failed: 0,
+          warnings: 0,
+        };
+      }
+
+      const passed = check.status === CheckStatus.PASS ? 1 : 0;
+      const failed = check.status === CheckStatus.FAIL ? 1 : 0;
+      const warnings = check.status === CheckStatus.WARNING ? 1 : 0;
+
+      return {
+        evaluated: true,
+        compliant: check.status === CheckStatus.PASS,
+        compliancePercentage: passed === 1 ? 100 : 0,
+        passed,
+        failed,
+        warnings,
+      };
+    };
+
+    const aal1 = calculateAALCompliance("aal1");
+    const aal2 = calculateAALCompliance("aal2");
+    const aal3 = calculateAALCompliance("aal3");
+
+    // Determine highest AAL achieved
+    let highestAAL: "AAL1" | "AAL2" | "AAL3" | "None" = "None";
+    if (aal3.compliant) {
+      highestAAL = "AAL3";
+    } else if (aal2.compliant) {
+      highestAAL = "AAL2";
+    } else if (aal1.compliant) {
+      highestAAL = "AAL1";
+    }
+
+    // Calculate overall NIST compliance
+    const evaluatedLevels = [aal1, aal2, aal3].filter((aal) => aal.evaluated);
+    const totalPassed = evaluatedLevels.reduce((sum, aal) => sum + aal.passed, 0);
+    const totalChecks = evaluatedLevels.length;
+    const overallCompliance =
+      totalChecks > 0 ? Math.round((totalPassed / totalChecks) * 100) : 0;
+
+    return {
+      aal1,
+      aal2,
+      aal3,
+      highestAAL,
+      overallCompliance,
+    };
   }
 
   /**
