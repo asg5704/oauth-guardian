@@ -87,6 +87,65 @@ export interface ComplianceScorecard {
 }
 
 /**
+ * NIST AAL-specific compliance metrics
+ */
+export interface NISTAALCompliance {
+  /** AAL1 compliance status */
+  aal1: {
+    /** Whether AAL1 checks were run */
+    evaluated: boolean;
+    /** Whether AAL1 requirements are met */
+    compliant: boolean;
+    /** Compliance percentage */
+    compliancePercentage: number;
+    /** Number of passed checks */
+    passed: number;
+    /** Number of failed checks */
+    failed: number;
+    /** Number of warnings */
+    warnings: number;
+  };
+
+  /** AAL2 compliance status */
+  aal2: {
+    /** Whether AAL2 checks were run */
+    evaluated: boolean;
+    /** Whether AAL2 requirements are met */
+    compliant: boolean;
+    /** Compliance percentage */
+    compliancePercentage: number;
+    /** Number of passed checks */
+    passed: number;
+    /** Number of failed checks */
+    failed: number;
+    /** Number of warnings */
+    warnings: number;
+  };
+
+  /** AAL3 compliance status */
+  aal3: {
+    /** Whether AAL3 checks were run */
+    evaluated: boolean;
+    /** Whether AAL3 requirements are met */
+    compliant: boolean;
+    /** Compliance percentage */
+    compliancePercentage: number;
+    /** Number of passed checks */
+    passed: number;
+    /** Number of failed checks */
+    failed: number;
+    /** Number of warnings */
+    warnings: number;
+  };
+
+  /** Highest AAL level achieved */
+  highestAAL: "AAL1" | "AAL2" | "AAL3" | "None";
+
+  /** Overall NIST compliance percentage */
+  overallCompliance: number;
+}
+
+/**
  * Main audit report
  */
 export interface Report {
@@ -122,6 +181,9 @@ export interface Report {
 
   /** Compliance scorecards */
   compliance: ComplianceScorecard[];
+
+  /** NIST AAL-specific compliance metrics */
+  nist?: NISTAALCompliance;
 
   /** Recommendations for improvement */
   recommendations?: string[];

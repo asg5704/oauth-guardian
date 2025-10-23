@@ -91,6 +91,11 @@ export class HTMLReporter {
    * Register Handlebars helpers
    */
   private registerHelpers(): void {
+    // Equality helper for conditionals
+    Handlebars.registerHelper("eq", (a: unknown, b: unknown) => {
+      return a === b;
+    });
+
     // Format date helper
     Handlebars.registerHelper("formatDate", (date: Date) => {
       if (!date) return "N/A";
@@ -200,8 +205,10 @@ export class HTMLReporter {
         skipped: report.summary.skipped,
         compliancePercentage: report.summary.compliancePercentage,
         riskScore: report.summary.riskScore,
+        bySeverity: report.summary.bySeverity,
       },
       compliance: report.compliance,
+      nist: report.nist,
       results: this.options.includeRemediation
         ? report.results
         : report.results.map((r) => ({
@@ -251,8 +258,10 @@ export class HTMLReporter {
         skipped: report.summary.skipped,
         compliancePercentage: report.summary.compliancePercentage,
         riskScore: report.summary.riskScore,
+        bySeverity: report.summary.bySeverity,
       },
       compliance: report.compliance,
+      nist: report.nist,
       results: this.options.includeRemediation
         ? report.results
         : report.results.map((r) => ({

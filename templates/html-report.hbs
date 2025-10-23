@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OAuth Guardian Security Audit Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -302,6 +303,7 @@
             color: #0066cc;
             margin-bottom: 10px;
             font-size: 1rem;
+            display: inline;
         }
 
         .check-remediation pre {
@@ -327,6 +329,47 @@
         .severity-medium { background: #ffc107; color: #212529; }
         .severity-low { background: #17a2b8; color: white; }
         .severity-info { background: #6c757d; color: white; }
+
+        .charts {
+            padding: 40px;
+            background: white;
+        }
+
+        .charts h2 {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #212529;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .chart-container h3 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #212529;
+            text-align: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        .chart-wrapper.large {
+            height: 400px;
+        }
 
         footer {
             background: #f8f9fa;
@@ -418,6 +461,24 @@
             </div>
         </section>
 
+        <section class="charts">
+            <h2>Analytics</h2>
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Check Status Distribution</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Findings by Severity</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="severityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         {{#if compliance.length}}
         <section class="compliance-scorecard">
             <h2>Compliance by Standard</h2>
@@ -450,6 +511,108 @@
         </section>
         {{/if}}
 
+        {{#if nist}}
+        <section class="compliance-scorecard">
+            <h2>NIST 800-63B AAL Compliance</h2>
+
+            <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <h3 style="margin: 0; color: #212529;">Highest AAL Achieved</h3>
+                        <p style="margin: 5px 0 0; color: #6c757d;">Based on compliance check results</p>
+                    </div>
+                    <div style="font-size: 2.5rem; font-weight: bold; color: {{#if (eq nist.highestAAL 'None')}}#dc3545{{else}}#667eea{{/if}};">
+                        {{nist.highestAAL}}
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="font-weight: 600;">Overall NIST Compliance</span>
+                        <span style="font-weight: 600;">{{nist.overallCompliance}}%</span>
+                    </div>
+                    <div class="risk-score-bar">
+                        <div class="risk-score-fill {{getComplianceClass nist.overallCompliance}}" style="width: {{nist.overallCompliance}}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <table class="compliance-table">
+                <thead>
+                    <tr>
+                        <th>AAL Level</th>
+                        <th>Status</th>
+                        <th>Passed</th>
+                        <th>Failed</th>
+                        <th>Warnings</th>
+                        <th>Compliance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#if nist.aal1.evaluated}}
+                    <tr>
+                        <td><strong>AAL1 - Single-Factor</strong></td>
+                        <td>
+                            {{#if nist.aal1.compliant}}
+                            <span class="check-status pass">Compliant</span>
+                            {{else}}
+                            <span class="check-status fail">Non-Compliant</span>
+                            {{/if}}
+                        </td>
+                        <td style="color: #28a745;">{{nist.aal1.passed}}</td>
+                        <td style="color: #dc3545;">{{nist.aal1.failed}}</td>
+                        <td style="color: #ffc107;">{{nist.aal1.warnings}}</td>
+                        <td>
+                            <span class="compliance-badge {{getComplianceBadgeClass nist.aal1.compliancePercentage}}">
+                                {{nist.aal1.compliancePercentage}}%
+                            </span>
+                        </td>
+                    </tr>
+                    {{/if}}
+                    {{#if nist.aal2.evaluated}}
+                    <tr>
+                        <td><strong>AAL2 - Multi-Factor</strong></td>
+                        <td>
+                            {{#if nist.aal2.compliant}}
+                            <span class="check-status pass">Compliant</span>
+                            {{else}}
+                            <span class="check-status fail">Non-Compliant</span>
+                            {{/if}}
+                        </td>
+                        <td style="color: #28a745;">{{nist.aal2.passed}}</td>
+                        <td style="color: #dc3545;">{{nist.aal2.failed}}</td>
+                        <td style="color: #ffc107;">{{nist.aal2.warnings}}</td>
+                        <td>
+                            <span class="compliance-badge {{getComplianceBadgeClass nist.aal2.compliancePercentage}}">
+                                {{nist.aal2.compliancePercentage}}%
+                            </span>
+                        </td>
+                    </tr>
+                    {{/if}}
+                    {{#if nist.aal3.evaluated}}
+                    <tr>
+                        <td><strong>AAL3 - Hardware-Based</strong></td>
+                        <td>
+                            {{#if nist.aal3.compliant}}
+                            <span class="check-status pass">Compliant</span>
+                            {{else}}
+                            <span class="check-status fail">Non-Compliant</span>
+                            {{/if}}
+                        </td>
+                        <td style="color: #28a745;">{{nist.aal3.passed}}</td>
+                        <td style="color: #dc3545;">{{nist.aal3.failed}}</td>
+                        <td style="color: #ffc107;">{{nist.aal3.warnings}}</td>
+                        <td>
+                            <span class="compliance-badge {{getComplianceBadgeClass nist.aal3.compliancePercentage}}">
+                                {{nist.aal3.compliancePercentage}}%
+                            </span>
+                        </td>
+                    </tr>
+                    {{/if}}
+                </tbody>
+            </table>
+        </section>
+        {{/if}}
+
         <section class="results">
             <h2>Check Results</h2>
             {{#each resultsByCategory}}
@@ -477,10 +640,10 @@
                     {{/if}}
 
                     {{#if this.remediation}}
-                    <div class="check-remediation">
-                        <h4>💡 Remediation</h4>
+                    <details class="check-remediation">
+                        <summary><h4>💡 Remediation</h4></summary>
                         <div>{{{formatRemediation this.remediation}}}</div>
-                    </div>
+                    </details>
                     {{/if}}
                 </div>
                 {{/each}}
@@ -492,5 +655,193 @@
             <p>Generated by OAuth Guardian v{{metadata.version}} • <a href="https://github.com/asg5704/oauth-guardian" style="color: #667eea;">github.com/asg5704/oauth-guardian</a></p>
         </footer>
     </div>
+
+    <script>
+        // Chart.js configuration
+        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif';
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#666';
+
+        // Status Distribution Pie Chart
+        const statusCtx = document.getElementById('statusChart');
+        if (statusCtx) {
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Passed', 'Failed', 'Warnings', 'Skipped'],
+                    datasets: [{
+                        data: [
+                            {{summary.passed}},
+                            {{summary.failed}},
+                            {{summary.warnings}},
+                            {{summary.skipped}}
+                        ],
+                        backgroundColor: [
+                            '#28a745',
+                            '#dc3545',
+                            '#ffc107',
+                            '#6c757d'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Severity Bar Chart
+        const severityCtx = document.getElementById('severityChart');
+        if (severityCtx) {
+            new Chart(severityCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Critical', 'High', 'Medium', 'Low', 'Info'],
+                    datasets: [{
+                        label: 'Number of Findings',
+                        data: [
+                            {{summary.bySeverity.critical}},
+                            {{summary.bySeverity.high}},
+                            {{summary.bySeverity.medium}},
+                            {{summary.bySeverity.low}},
+                            {{summary.bySeverity.info}}
+                        ],
+                        backgroundColor: [
+                            '#721c24',
+                            '#dc3545',
+                            '#ffc107',
+                            '#17a2b8',
+                            '#6c757d'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            },
+                            grid: {
+                                color: '#e9ecef'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Findings: ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Compliance Radar Chart
+        const complianceCtx = document.getElementById('complianceChart');
+        if (complianceCtx) {
+            new Chart(complianceCtx, {
+                type: 'radar',
+                data: {
+                    labels: [
+                        {{#each compliance}}
+                        '{{this.standard}}'{{#unless @last}},{{/unless}}
+                        {{/each}}
+                    ],
+                    datasets: [{
+                        label: 'Compliance Percentage',
+                        data: [
+                            {{#each compliance}}
+                            {{this.compliancePercentage}}{{#unless @last}},{{/unless}}
+                            {{/each}}
+                        ],
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(102, 126, 234, 1)',
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                stepSize: 20,
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            grid: {
+                                color: '#e9ecef'
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Compliance: ' + context.parsed.r + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>
